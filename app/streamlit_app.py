@@ -229,7 +229,7 @@ def main():
     analysis_type = st.sidebar.selectbox(
         "Select Analysis",
         ["Overview", "Resistance Heatmap", "Cluster Analysis", "PCA Analysis", 
-         "Regional Distribution", "Model Evaluation"]
+         "Regional Distribution", "Model Evaluation", "Integration & Synthesis"]
     )
     
     # Main content area
@@ -459,6 +459,197 @@ def main():
                 st.info("No trained models found. Run the supervised learning pipeline first.")
         else:
             st.info("Models directory not found. Run the supervised learning pipeline first.")
+    
+    elif analysis_type == "Integration & Synthesis":
+        st.header("🔗 Integration & Synthesis (Phase 6)")
+        
+        st.markdown("""
+        This section integrates results from unsupervised clustering (Phase 3), 
+        supervised learning (Phase 4), and regional/environmental analysis (Phase 5)
+        to identify key patterns in AMR data.
+        """)
+        
+        # Check for required columns
+        has_clusters = 'CLUSTER' in df.columns
+        has_mdr = 'MDR_FLAG' in df.columns or 'MDR_CATEGORY' in df.columns
+        
+        if not has_clusters:
+            st.warning("⚠️ No cluster information found. Run the clustering pipeline first.")
+        else:
+            # Import integration module
+            try:
+                from analysis.integration_synthesis import (
+                    compare_clusters_with_supervised,
+                    identify_resistance_archetypes,
+                    identify_species_environment_associations,
+                    identify_mdr_enriched_patterns
+                )
+                
+                # 1. Cluster vs Supervised Comparison
+                st.subheader("1. Cluster-Supervised Comparison")
+                comparison = compare_clusters_with_supervised(df)
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if comparison.get('cluster_mdr_alignment'):
+                        st.markdown("**Cluster vs MDR Status:**")
+                        mdr_df = pd.DataFrame(comparison['cluster_mdr_alignment'])
+                        st.dataframe(mdr_df, use_container_width=True)
+                        
+                        if comparison.get('mdr_chi_square'):
+                            chi_test = comparison['mdr_chi_square']
+                            if chi_test['significant']:
+                                st.success(f"✅ Significant association (χ²={chi_test['statistic']:.2f}, p={chi_test['p_value']:.4f})")
+                            else:
+                                st.info(f"ℹ️ No significant association (p={chi_test['p_value']:.4f})")
+                
+                with col2:
+                    if comparison.get('cluster_purity'):
+                        st.markdown("**Cluster Purity:**")
+                        purity_data = []
+                        for cluster, info in comparison['cluster_purity'].items():
+                            row = {'Cluster': cluster}
+                            if 'mdr_dominant' in info:
+                                row['Dominant MDR'] = info['mdr_dominant']
+                                row['MDR Purity'] = f"{info['mdr_purity']*100:.1f}%"
+                            if 'species_dominant' in info:
+                                row['Dominant Species'] = info['species_dominant']
+                            purity_data.append(row)
+                        st.dataframe(pd.DataFrame(purity_data), use_container_width=True)
+                
+                # Interpretation
+                if comparison.get('interpretation'):
+                    with st.expander("📝 Interpretation"):
+                        for interp in comparison['interpretation']:
+                            st.write(f"• {interp}")
+                
+                # 2. Resistance Archetypes
+                st.subheader("2. Dominant Resistance Archetypes")
+                archetypes = identify_resistance_archetypes(df, antibiotic_cols)
+                
+                if archetypes.get('cluster_archetypes'):
+                    for cluster_id, arch in archetypes['cluster_archetypes'].items():
+                        with st.expander(f"📊 Cluster {cluster_id} - {arch['resistance_level']} ({arch['cluster_size']} isolates)"):
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Mean Resistance Score", f"{arch['mean_resistance_score']:.2f}")
+                                if arch['resistant_to']:
+                                    st.markdown("**Resistant to:**")
+                                    st.write(", ".join(arch['resistant_to'][:7]))
+                            with col2:
+                                if arch['susceptible_to']:
+                                    st.markdown("**Susceptible to:**")
+                                    st.write(", ".join(arch['susceptible_to'][:7]))
+                
+                # 3. Species-Environment Associations
+                st.subheader("3. Species-Environment Associations")
+                associations = identify_species_environment_associations(df)
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if associations.get('species_environment'):
+                        st.markdown("**Species by Environment:**")
+                        env_data = []
+                        for species, info in associations['species_environment'].items():
+                            env_data.append({
+                                'Species': species,
+                                'Dominant Environment': info['dominant_environment'],
+                                'Proportion': f"{info['proportion']*100:.1f}%"
+                            })
+                        st.dataframe(pd.DataFrame(env_data), use_container_width=True)
+                
+                with col2:
+                    if associations.get('species_region'):
+                        st.markdown("**Species by Region:**")
+                        region_data = []
+                        for species, info in associations['species_region'].items():
+                            region_data.append({
+                                'Species': species,
+                                'Dominant Region': info['dominant_region'],
+                                'Proportion': f"{info['proportion']*100:.1f}%"
+                            })
+                        st.dataframe(pd.DataFrame(region_data), use_container_width=True)
+                
+                # Statistical tests
+                if associations.get('statistical_tests'):
+                    with st.expander("📊 Statistical Tests"):
+                        for test_name, test_result in associations['statistical_tests'].items():
+                            if test_result['significant']:
+                                st.success(f"✅ {test_name}: Significant (χ²={test_result['chi_square']:.2f}, p={test_result['p_value']:.4f})")
+                            else:
+                                st.info(f"ℹ️ {test_name}: Not significant (p={test_result['p_value']:.4f})")
+                
+                # 4. MDR-Enriched Patterns
+                st.subheader("4. MDR-Enriched Patterns")
+                
+                if has_mdr:
+                    mdr_patterns = identify_mdr_enriched_patterns(df, antibiotic_cols)
+                    
+                    # Overall MDR rate
+                    if mdr_patterns.get('overall_mdr_rate') is not None:
+                        st.metric("Overall MDR Prevalence", f"{mdr_patterns['overall_mdr_rate']*100:.1f}%")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        if mdr_patterns.get('mdr_enriched_clusters'):
+                            st.markdown("**MDR-Enriched Clusters:**")
+                            cluster_data = []
+                            for item in mdr_patterns['mdr_enriched_clusters']:
+                                cluster_data.append({
+                                    'Cluster': item['cluster'],
+                                    'MDR Rate': f"{item['mdr_rate']*100:.1f}%",
+                                    'Fold Enrichment': f"{item['fold_enrichment']:.1f}x",
+                                    'Sample Size': item['sample_size']
+                                })
+                            st.dataframe(pd.DataFrame(cluster_data), use_container_width=True)
+                    
+                    with col2:
+                        if mdr_patterns.get('mdr_enriched_regions'):
+                            st.markdown("**MDR-Enriched Regions:**")
+                            region_data = []
+                            for item in mdr_patterns['mdr_enriched_regions']:
+                                region_data.append({
+                                    'Region': item['region'],
+                                    'MDR Rate': f"{item['mdr_rate']*100:.1f}%",
+                                    'Fold Enrichment': f"{item['fold_enrichment']:.1f}x"
+                                })
+                            st.dataframe(pd.DataFrame(region_data), use_container_width=True)
+                    
+                    # MDR Resistance Signature
+                    if mdr_patterns.get('mdr_resistance_signature'):
+                        with st.expander("🔬 MDR Resistance Signature"):
+                            sig_data = []
+                            for ab, ab_stats in mdr_patterns['mdr_resistance_signature'].items():
+                                sig_data.append({
+                                    'Antibiotic': ab,
+                                    'MDR Mean': ab_stats['mdr_mean'],
+                                    'Non-MDR Mean': ab_stats['non_mdr_mean'],
+                                    'Difference': ab_stats['difference']
+                                })
+                            sig_df = pd.DataFrame(sig_data)
+                            sig_df = sig_df.sort_values('Difference', ascending=False)
+                            # Format for display
+                            sig_df['MDR Mean'] = sig_df['MDR Mean'].apply(lambda x: f"{x:.2f}")
+                            sig_df['Non-MDR Mean'] = sig_df['Non-MDR Mean'].apply(lambda x: f"{x:.2f}")
+                            sig_df['Difference'] = sig_df['Difference'].apply(lambda x: f"{x:.2f}")
+                            st.dataframe(sig_df, use_container_width=True)
+                    
+                    # Interpretation
+                    if mdr_patterns.get('interpretation'):
+                        with st.expander("📝 Interpretation"):
+                            for interp in mdr_patterns['interpretation']:
+                                st.write(f"• {interp}")
+                else:
+                    st.info("ℹ️ MDR information not available in the dataset.")
+                    
+            except ImportError as e:
+                st.error(f"Could not import integration module: {e}")
+                st.info("Possible causes: 1) Missing dependencies (scipy, numpy). "
+                       "2) Module not found in src/analysis directory. "
+                       "Run 'pip install -r requirements.txt' to install dependencies.")
     
     # Footer
     st.markdown("---")

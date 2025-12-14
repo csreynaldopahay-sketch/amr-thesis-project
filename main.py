@@ -19,6 +19,7 @@ from clustering.hierarchical_clustering import run_clustering_pipeline, get_clus
 from visualization.visualization import generate_all_visualizations
 from supervised.supervised_learning import run_mdr_discrimination, save_model
 from analysis.regional_environmental import run_regional_environmental_analysis
+from analysis.integration_synthesis import run_integration_synthesis
 
 
 def run_full_pipeline(data_dir: str = None, output_dir: str = None):
@@ -133,6 +134,7 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     print("\n")
     
     # MDR Discrimination
+    mdr_results = None
     if 'MDR_CATEGORY' in df_clustered.columns:
         try:
             mdr_results = run_mdr_discrimination(df_clustered, feature_cols)
@@ -164,9 +166,15 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     # PHASE 6: Integration & Synthesis
     # =============================================
     
-    print("\n" + "=" * 70)
-    print("PHASE 6: INTEGRATION & SYNTHESIS")
-    print("=" * 70)
+    # Run comprehensive integration and synthesis analysis
+    integration_results = run_integration_synthesis(
+        df_clustered, feature_cols, supervised_results=mdr_results
+    )
+    
+    # Additional summary statistics
+    print("\n" + "-" * 50)
+    print("ADDITIONAL STATISTICS:")
+    print("-" * 50)
     
     print("\n1. Dataset Summary:")
     print(f"   Total isolates analyzed: {len(df_clustered)}")
@@ -206,7 +214,7 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     print("\nTo run the interactive dashboard:")
     print("  streamlit run app/streamlit_app.py")
     
-    return df_clustered
+    return df_clustered, integration_results
 
 
 if __name__ == "__main__":
