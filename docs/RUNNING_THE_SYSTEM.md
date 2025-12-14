@@ -58,8 +58,10 @@ You should see output like `Python 3.8.x` or higher.
 
 **Option A: Clone with Git**
 
+Replace `<repository-url>` with the actual repository URL provided to you:
+
 ```bash
-git clone https://github.com/your-repo/amr-thesis-project.git
+git clone <repository-url>
 cd amr-thesis-project
 ```
 
@@ -160,11 +162,14 @@ You can run specific pipeline phases independently for targeted analysis.
 
 ### Step 4.1: Data Ingestion Only
 
-```python
-# Create a Python script or use Python interactive mode
+**Option A: Using Python Interactive Mode**
+
+Start Python from the project root directory:
+```bash
 python
 ```
 
+Then enter the following commands:
 ```python
 from src.preprocessing.data_ingestion import create_unified_dataset
 
@@ -172,6 +177,18 @@ from src.preprocessing.data_ingestion import create_unified_dataset
 df = create_unified_dataset('data/raw/', 'data/processed/unified.csv')
 print(f"Loaded {len(df)} isolates")
 ```
+
+**Option B: Create a Script File**
+
+Create a file named `run_ingestion.py` with the following content:
+```python
+from src.preprocessing.data_ingestion import create_unified_dataset
+
+df = create_unified_dataset('data/raw/', 'data/processed/unified.csv')
+print(f"Loaded {len(df)} isolates")
+```
+
+Then run: `python run_ingestion.py`
 
 ### Step 4.2: Data Cleaning Only
 
