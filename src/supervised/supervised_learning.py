@@ -217,23 +217,27 @@ def evaluate_model(model, X_test: np.ndarray, y_test: np.ndarray,
     # Predictions
     y_pred = model.predict(X_test)
     
+    # Get unique labels present in either y_test or y_pred
+    present_labels = np.unique(np.concatenate([y_test, y_pred]))
+    
     # Calculate metrics
     results = {
         'accuracy': accuracy_score(y_test, y_pred),
         'precision': precision_score(y_test, y_pred, average='weighted', zero_division=0),
         'recall': recall_score(y_test, y_pred, average='weighted', zero_division=0),
         'f1_score': f1_score(y_test, y_pred, average='weighted', zero_division=0),
-        'confusion_matrix': confusion_matrix(y_test, y_pred).tolist()
+        'confusion_matrix': confusion_matrix(y_test, y_pred, labels=present_labels).tolist()
     }
     
     # Classification report
     if label_encoder is not None:
-        target_names = label_encoder.classes_.tolist()
+        # Get target names only for labels present in the data
+        target_names = label_encoder.inverse_transform(present_labels).tolist()
     else:
-        target_names = [str(c) for c in np.unique(y_test)]
+        target_names = [str(c) for c in present_labels]
     
     results['classification_report'] = classification_report(
-        y_test, y_pred, target_names=target_names, output_dict=True
+        y_test, y_pred, labels=present_labels, target_names=target_names, output_dict=True
     )
     
     return results
