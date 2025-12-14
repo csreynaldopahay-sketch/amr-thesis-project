@@ -118,6 +118,23 @@ def prepare_data_for_classification(df: pd.DataFrame,
     # Remove rows with missing target
     df_valid = df[df[target_col].notna()].copy()
     
+    # Filter out classes with fewer than 2 samples (required for stratified split)
+    class_counts = df_valid[target_col].value_counts()
+    valid_classes = class_counts[class_counts >= 2].index
+    
+    if (class_counts < 2).any():
+        removed_classes = class_counts[class_counts < 2].index.tolist()
+        warnings.warn(
+            f"Removed {len(removed_classes)} class(es) with fewer than 2 samples "
+            f"(required for stratified split): {removed_classes}",
+            category=UserWarning
+        )
+    
+    df_valid = df_valid[df_valid[target_col].isin(valid_classes)].copy()
+    
+    if len(df_valid) == 0:
+        raise ValueError("No samples remaining after filtering classes with fewer than 2 samples.")
+    
     # Prepare features
     existing_cols = [c for c in feature_cols if c in df_valid.columns]
     X = df_valid[existing_cols].copy()
