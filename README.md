@@ -7,12 +7,12 @@ An analytical pipeline for antimicrobial resistance (AMR) pattern recognition an
 This project implements a comprehensive data science pipeline for AMR surveillance, including:
 
 - **Phase 2**: Data preprocessing (ingestion, cleaning, encoding, feature engineering)
-- **Phase 3**: Unsupervised pattern recognition (hierarchical clustering, visualization)
+- **Phase 3**: Unsupervised structure identification (hierarchical clustering, visualization)
 - **Phase 4**: Supervised learning for pattern discrimination
 - **Phase 5**: Regional and environmental analysis (PCA, distribution analysis)
 - **Phase 6**: Integration and synthesis
 - **Phase 7**: Interactive Streamlit dashboard
-- **Phase 8**: Documentation
+- **Phase 8**: Documentation (see [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md))
 
 ## Isolate Code Convention
 
@@ -146,6 +146,16 @@ After running the pipeline, the following files are generated:
 - `analysis_ready_dataset.csv`: Final dataset with all computed features
 - `clustered_dataset.csv`: Dataset with cluster assignments
 - `figures/`: Directory containing all visualizations
+
+## Key Terminology
+
+This project uses the following standardized terminology:
+
+- **Pattern Discrimination**: Supervised learning to evaluate how resistance patterns distinguish known categories
+- **Model Evaluation**: Quantifying model performance to assess pattern consistency
+- **Structure Identification**: Unsupervised discovery of natural groupings in resistance data
+
+For detailed terminology definitions, see [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md).
 
 ## Disclaimer
 
