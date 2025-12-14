@@ -14,6 +14,8 @@ This project implements a comprehensive data science pipeline for AMR surveillan
 - **Phase 7**: Interactive Streamlit dashboard
 - **Phase 8**: Documentation (see [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md))
 
+> **📖 For detailed step-by-step instructions on running the system, see [docs/RUNNING_THE_SYSTEM.md](docs/RUNNING_THE_SYSTEM.md)**
+
 ## Isolate Code Convention
 
 The isolate codes follow this naming convention:
