@@ -93,7 +93,7 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     print(f"Analysis-ready dataset saved to: {analysis_path}")
     
     # =============================================
-    # PHASE 3: Unsupervised Pattern Recognition
+    # PHASE 3: Unsupervised Structure Identification
     # =============================================
     
     print("\n")

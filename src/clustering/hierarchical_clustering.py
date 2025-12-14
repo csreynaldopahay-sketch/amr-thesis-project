@@ -1,6 +1,9 @@
 """
 Clustering Module for AMR Thesis Project
-Phase 3.1 - Hierarchical Agglomerative Clustering for Resistance Pattern Recognition
+Phase 3.1 - Hierarchical Agglomerative Clustering for Structure Identification
+
+This module performs unsupervised structure identification to discover natural
+groupings in resistance patterns without pre-defined categories.
 """
 
 import pandas as pd
@@ -200,7 +203,7 @@ def run_clustering_pipeline(df: pd.DataFrame,
         (Dataframe with cluster labels, Linkage matrix, Clustering info dict)
     """
     print("=" * 50)
-    print("PHASE 3.1: Resistance-Profile Clustering")
+    print("PHASE 3.1: Structure Identification via Clustering")
     print("=" * 50)
     
     # Prepare data
