@@ -622,15 +622,19 @@ def main():
                     if mdr_patterns.get('mdr_resistance_signature'):
                         with st.expander("🔬 MDR Resistance Signature"):
                             sig_data = []
-                            for ab, stats in mdr_patterns['mdr_resistance_signature'].items():
+                            for ab, ab_stats in mdr_patterns['mdr_resistance_signature'].items():
                                 sig_data.append({
                                     'Antibiotic': ab,
-                                    'MDR Mean': f"{stats['mdr_mean']:.2f}",
-                                    'Non-MDR Mean': f"{stats['non_mdr_mean']:.2f}",
-                                    'Difference': f"{stats['difference']:.2f}"
+                                    'MDR Mean': ab_stats['mdr_mean'],
+                                    'Non-MDR Mean': ab_stats['non_mdr_mean'],
+                                    'Difference': ab_stats['difference']
                                 })
                             sig_df = pd.DataFrame(sig_data)
-                            sig_df = sig_df.sort_values('Difference', ascending=False, key=lambda x: pd.to_numeric(x, errors='coerce'))
+                            sig_df = sig_df.sort_values('Difference', ascending=False)
+                            # Format for display
+                            sig_df['MDR Mean'] = sig_df['MDR Mean'].apply(lambda x: f"{x:.2f}")
+                            sig_df['Non-MDR Mean'] = sig_df['Non-MDR Mean'].apply(lambda x: f"{x:.2f}")
+                            sig_df['Difference'] = sig_df['Difference'].apply(lambda x: f"{x:.2f}")
                             st.dataframe(sig_df, use_container_width=True)
                     
                     # Interpretation
@@ -643,7 +647,9 @@ def main():
                     
             except ImportError as e:
                 st.error(f"Could not import integration module: {e}")
-                st.info("Make sure the integration_synthesis.py module is in the src/analysis directory.")
+                st.info("Possible causes: 1) Missing dependencies (scipy, numpy). "
+                       "2) Module not found in src/analysis directory. "
+                       "Run 'pip install -r requirements.txt' to install dependencies.")
     
     # Footer
     st.markdown("---")

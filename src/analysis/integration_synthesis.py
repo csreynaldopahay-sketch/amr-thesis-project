@@ -13,6 +13,41 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Tuple
 from scipy import stats
+import warnings
+
+
+def _get_antibiotic_name(col_name: str) -> str:
+    """
+    Extract antibiotic name from encoded column name.
+    
+    Parameters:
+    -----------
+    col_name : str
+        Column name (e.g., 'AM_encoded' or 'AM')
+    
+    Returns:
+    --------
+    str
+        Antibiotic name without '_encoded' suffix
+    """
+    return col_name.replace('_encoded', '')
+
+
+def _normalize_cluster_id(cluster_id) -> int:
+    """
+    Normalize cluster ID to integer.
+    
+    Parameters:
+    -----------
+    cluster_id : any
+        Cluster ID (could be int, float, or numpy type)
+    
+    Returns:
+    --------
+    int
+        Normalized integer cluster ID
+    """
+    return int(cluster_id)
 
 
 def compare_clusters_with_supervised(
@@ -69,7 +104,7 @@ def compare_clusters_with_supervised(
                 mdr_counts = cluster_df[mdr_col].value_counts()
                 dominant_mdr = mdr_counts.idxmax()
                 purity = mdr_counts.max() / len(cluster_df)
-                comparison['cluster_purity'][int(cluster)] = {
+                comparison['cluster_purity'][_normalize_cluster_id(cluster)] = {
                     'mdr_dominant': dominant_mdr,
                     'mdr_purity': float(purity)
                 }
@@ -95,8 +130,9 @@ def compare_clusters_with_supervised(
                     "No significant association between clusters and MDR status. "
                     "Clusters may capture other resistance patterns."
                 )
-        except Exception:
-            pass
+        except ValueError as e:
+            # Chi-square test can fail with insufficient data
+            warnings.warn(f"Chi-square test for cluster-MDR failed: {e}")
     
     # Compare clusters with species
     if species_col in df.columns:
@@ -110,11 +146,12 @@ def compare_clusters_with_supervised(
                 species_counts = cluster_df[species_col].value_counts()
                 dominant_species = species_counts.idxmax()
                 purity = species_counts.max() / len(cluster_df)
-                if int(cluster) in comparison['cluster_purity']:
-                    comparison['cluster_purity'][int(cluster)]['species_dominant'] = dominant_species
-                    comparison['cluster_purity'][int(cluster)]['species_purity'] = float(purity)
+                cluster_id = _normalize_cluster_id(cluster)
+                if cluster_id in comparison['cluster_purity']:
+                    comparison['cluster_purity'][cluster_id]['species_dominant'] = dominant_species
+                    comparison['cluster_purity'][cluster_id]['species_purity'] = float(purity)
                 else:
-                    comparison['cluster_purity'][int(cluster)] = {
+                    comparison['cluster_purity'][cluster_id] = {
                         'species_dominant': dominant_species,
                         'species_purity': float(purity)
                     }
@@ -135,8 +172,9 @@ def compare_clusters_with_supervised(
                     f"(χ²={chi2:.2f}, p={p_value:.4f}). "
                     "Resistance patterns relate to species identity."
                 )
-        except Exception:
-            pass
+        except ValueError as e:
+            # Chi-square test can fail with insufficient data
+            warnings.warn(f"Chi-square test for cluster-species failed: {e}")
     
     return comparison
 
@@ -190,11 +228,11 @@ def identify_resistance_archetypes(
         
         # Identify antibiotics with high resistance (mean > threshold)
         high_resistance = profile[profile > threshold_resistant].sort_values(ascending=False)
-        high_resistance_abs = [ab.replace('_encoded', '') for ab in high_resistance.index.tolist()]
+        high_resistance_abs = [_get_antibiotic_name(ab) for ab in high_resistance.index.tolist()]
         
         # Identify antibiotics with low resistance (mean < 0.5, mostly susceptible)
         low_resistance = profile[profile < 0.5].sort_values()
-        low_resistance_abs = [ab.replace('_encoded', '') for ab in low_resistance.index.tolist()]
+        low_resistance_abs = [_get_antibiotic_name(ab) for ab in low_resistance.index.tolist()]
         
         # Calculate overall resistance level
         mean_resistance = profile.mean()
@@ -214,12 +252,12 @@ def identify_resistance_archetypes(
             'resistant_to': high_resistance_abs[:10],  # Top 10
             'susceptible_to': low_resistance_abs[:10],  # Top 10
             'full_profile': {
-                ab.replace('_encoded', ''): float(val)
+                _get_antibiotic_name(ab): float(val)
                 for ab, val in profile.items()
             }
         }
         
-        archetypes['cluster_archetypes'][int(cluster)] = archetype
+        archetypes['cluster_archetypes'][_normalize_cluster_id(cluster)] = archetype
         
         # Generate summary description
         if high_resistance_abs:
@@ -302,8 +340,9 @@ def identify_species_environment_associations(
                     f"(χ²={chi2:.2f}, p={p_value:.4f}). "
                     "Different species prefer different environmental sources."
                 )
-        except Exception:
-            pass
+        except ValueError as e:
+            # Chi-square test can fail with insufficient data
+            warnings.warn(f"Chi-square test for species-environment failed: {e}")
     
     # Species-Region associations
     if species_col in df.columns and region_col in df.columns:
@@ -337,8 +376,9 @@ def identify_species_environment_associations(
                     f"(χ²={chi2:.2f}, p={p_value:.4f}). "
                     "Species distribution varies by region."
                 )
-        except Exception:
-            pass
+        except ValueError as e:
+            # Chi-square test can fail with insufficient data
+            warnings.warn(f"Chi-square test for species-region failed: {e}")
     
     return associations
 
@@ -483,7 +523,7 @@ def identify_mdr_enriched_patterns(
         
         if len(mdr_isolates) > 0 and len(non_mdr_isolates) > 0:
             for col in existing_cols:
-                ab_name = col.replace('_encoded', '')
+                ab_name = _get_antibiotic_name(col)
                 mdr_mean = mdr_isolates[col].mean()
                 non_mdr_mean = non_mdr_isolates[col].mean()
                 diff = mdr_mean - non_mdr_mean
