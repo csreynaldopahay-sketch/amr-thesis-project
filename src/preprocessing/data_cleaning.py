@@ -503,7 +503,7 @@ def generate_cleaning_report(report: Dict, output_path: str = None) -> str:
 if __name__ == "__main__":
     import os
     from pathlib import Path
-    from data_ingestion import create_unified_dataset
+    from .data_ingestion import create_unified_dataset
     
     project_root = Path(__file__).parent.parent.parent
     

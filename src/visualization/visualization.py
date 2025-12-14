@@ -446,7 +446,7 @@ def generate_all_visualizations(df: pd.DataFrame,
     saved_figures['clustered_heatmap'] = clustered_path
     
     # 4. Cluster profiles
-    from .hierarchical_clustering import get_cluster_profiles
+    from ..clustering.hierarchical_clustering import get_cluster_profiles
     print("4. Creating cluster profile heatmap...")
     cluster_profiles = get_cluster_profiles(df, feature_cols)
     profile_path = os.path.join(output_dir, 'cluster_profiles.png')
@@ -474,7 +474,7 @@ def generate_all_visualizations(df: pd.DataFrame,
 
 if __name__ == "__main__":
     from pathlib import Path
-    from hierarchical_clustering import run_clustering_pipeline
+    from ..clustering.hierarchical_clustering import run_clustering_pipeline
     
     project_root = Path(__file__).parent.parent.parent
     analysis_path = project_root / "data" / "processed" / "analysis_ready_dataset.csv"
