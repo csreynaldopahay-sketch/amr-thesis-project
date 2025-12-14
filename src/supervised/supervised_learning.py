@@ -1,6 +1,39 @@
 """
 Supervised Learning Module for AMR Thesis Project
-Phase 4 - Pattern Discrimination using Machine Learning Models
+Phase 4 - Supervised Learning for Pattern Discrimination
+
+OBJECTIVE (4.1):
+    Evaluate how well resistance fingerprints discriminate known categories:
+    - Bacterial species
+    - MDR vs non-MDR groups
+    Note: This is pattern discrimination, NOT forecasting/prediction of future outcomes.
+
+DATA SPLITTING (4.2):
+    - 80%-20% train-test split (default)
+    - Purpose: Assess model generalization, avoid overfitting, support robustness
+    - Framed as model validation, not prediction
+
+MODEL SELECTION (4.3):
+    - Random Forest
+    - Support Vector Machine
+    - k-Nearest Neighbors
+    - Logistic Regression
+    - Decision Tree
+    - Naive Bayes
+
+MODEL TRAINING (4.4):
+    - Inputs: Resistance fingerprints (encoded antibiotic susceptibility)
+    - Targets: Known labels (species or MDR category)
+
+MODEL EVALUATION (4.5):
+    - Accuracy, Precision, Recall, F1-score, Confusion matrix
+    - Interpretation: Metrics quantify how consistently resistance patterns
+      align with known categories, NOT predictive performance for future samples.
+
+MODEL INTERPRETATION (4.6):
+    - Feature importance analysis identifies antibiotics contributing most
+      to group separation
+    - Findings should be related to AST results, MDR trends, biological plausibility
 """
 
 import pandas as pd
@@ -41,18 +74,22 @@ def prepare_data_for_classification(df: pd.DataFrame,
                                     test_size: float = 0.2,
                                     random_state: int = 42) -> Tuple:
     """
-    Prepare data for supervised learning.
+    Prepare data for supervised learning (Phase 4.2 & 4.4).
+    
+    Applies 80%-20% train-test split (default) for model validation.
+    Purpose: Assess model generalization, avoid overfitting, support robustness
+    of pattern discrimination. This is framed as model validation, NOT prediction.
     
     Parameters:
     -----------
     df : pd.DataFrame
         Input dataframe with features and target
     feature_cols : list
-        List of feature column names
+        List of feature column names (resistance fingerprints only)
     target_col : str
-        Name of target column
+        Name of target column (known labels: species or MDR category)
     test_size : float
-        Proportion of data for testing
+        Proportion of data for testing (default 0.2 = 20%)
     random_state : int
         Random seed for reproducibility
     
@@ -119,7 +156,13 @@ def train_model(model, X_train: np.ndarray, y_train: np.ndarray):
 def evaluate_model(model, X_test: np.ndarray, y_test: np.ndarray,
                    label_encoder=None) -> Dict:
     """
-    Evaluate model performance.
+    Evaluate model performance (Phase 4.5).
+    
+    Computes: Accuracy, Precision, Recall, F1-score, Confusion matrix.
+    
+    Interpretation framing: These metrics quantify how consistently 
+    resistance patterns align with known categories, NOT predictive 
+    performance for future samples.
     
     Parameters:
     -----------
@@ -164,19 +207,25 @@ def evaluate_model(model, X_test: np.ndarray, y_test: np.ndarray,
 
 def get_feature_importance(model, feature_names: List[str]) -> Dict[str, float]:
     """
-    Extract feature importance from model.
+    Extract feature importance from model (Phase 4.6).
+    
+    Identifies antibiotics contributing most to group separation.
+    These findings should be related to:
+    - AST (Antimicrobial Susceptibility Testing) results
+    - MDR trends
+    - Biological plausibility
     
     Parameters:
     -----------
     model : sklearn estimator
         Trained model
     feature_names : list
-        List of feature names
+        List of feature names (antibiotic names)
     
     Returns:
     --------
     dict
-        Feature importance scores
+        Feature importance scores (higher = more contribution to discrimination)
     """
     importance = {}
     
@@ -196,6 +245,106 @@ def get_feature_importance(model, feature_names: List[str]) -> Dict[str, float]:
     importance = dict(sorted(importance.items(), key=lambda x: x[1], reverse=True))
     
     return importance
+
+
+def interpret_feature_importance(feature_importance: Dict[str, float],
+                                  df: pd.DataFrame = None,
+                                  target_col: str = None) -> Dict:
+    """
+    Interpret feature importance findings (Phase 4.6).
+    
+    Relates feature importance to:
+    - AST results: Which antibiotics are most discriminative
+    - MDR trends: Connection to multi-drug resistance patterns
+    - Biological plausibility: Interpretation context
+    
+    Parameters:
+    -----------
+    feature_importance : dict
+        Feature importance scores from get_feature_importance()
+    df : pd.DataFrame, optional
+        Original dataframe for computing additional statistics
+    target_col : str, optional
+        Target column name for context
+    
+    Returns:
+    --------
+    dict
+        Interpretation results including top discriminators and context
+    """
+    # Antibiotic class mapping for biological plausibility interpretation
+    ANTIBIOTIC_CLASSES = {
+        'AM': 'Penicillins', 'AMP': 'Penicillins',
+        'AMC': 'β-lactam/β-lactamase inhibitor', 'PRA': 'β-lactam/β-lactamase inhibitor',
+        'CN': 'Cephalosporins-1st', 'CF': 'Cephalosporins-1st',
+        'CPD': 'Cephalosporins-3rd/4th', 'CTX': 'Cephalosporins-3rd/4th',
+        'CFT': 'Cephalosporins-3rd/4th', 'CPT': 'Cephalosporins-3rd/4th',
+        'CFO': 'Cephamycins',
+        'IPM': 'Carbapenems', 'MRB': 'Carbapenems',
+        'AN': 'Aminoglycosides', 'GM': 'Aminoglycosides', 'N': 'Aminoglycosides',
+        'NAL': 'Quinolones/Fluoroquinolones', 'ENR': 'Quinolones/Fluoroquinolones',
+        'DO': 'Tetracyclines', 'TE': 'Tetracyclines',
+        'FT': 'Nitrofurans',
+        'C': 'Phenicols',
+        'SXT': 'Folate pathway inhibitors'
+    }
+    
+    interpretation = {
+        'top_discriminators': [],
+        'antibiotic_classes_involved': set(),
+        'interpretation_notes': []
+    }
+    
+    # Get top 5 discriminators
+    top_features = list(feature_importance.items())[:5]
+    
+    for antibiotic, score in top_features:
+        ab_class = ANTIBIOTIC_CLASSES.get(antibiotic, 'Unknown class')
+        interpretation['top_discriminators'].append({
+            'antibiotic': antibiotic,
+            'importance_score': score,
+            'antibiotic_class': ab_class
+        })
+        interpretation['antibiotic_classes_involved'].add(ab_class)
+    
+    # Convert set to list for JSON serialization
+    interpretation['antibiotic_classes_involved'] = list(
+        interpretation['antibiotic_classes_involved']
+    )
+    
+    # Add interpretation notes
+    interpretation['interpretation_notes'].append(
+        "Feature importance scores indicate antibiotics contributing most to group separation."
+    )
+    interpretation['interpretation_notes'].append(
+        "Higher scores suggest these antibiotics show more consistent resistance patterns "
+        "within categories (e.g., species or MDR status)."
+    )
+    
+    # MDR-related interpretation if applicable
+    if target_col and 'MDR' in target_col.upper():
+        interpretation['interpretation_notes'].append(
+            "For MDR discrimination, top features indicate antibiotics whose resistance "
+            "patterns most consistently differentiate MDR from non-MDR isolates."
+        )
+    
+    # Compute resistance rates if dataframe is provided
+    if df is not None:
+        resistance_stats = {}
+        for ab, _ in top_features:
+            col_name = f"{ab}_encoded" if f"{ab}_encoded" in df.columns else ab
+            if col_name in df.columns:
+                # Count resistant (value=2) vs total
+                resistance_rate = (df[col_name] == 2).mean()
+                resistance_stats[ab] = {
+                    'resistance_rate': float(resistance_rate),
+                    'interpretation': 'High resistance' if resistance_rate > 0.5 else 
+                                     'Moderate resistance' if resistance_rate > 0.2 else 
+                                     'Low resistance'
+                }
+        interpretation['ast_results'] = resistance_stats
+    
+    return interpretation
 
 
 def run_all_models(X_train: np.ndarray, X_test: np.ndarray,
@@ -284,18 +433,24 @@ def run_supervised_pipeline(df: pd.DataFrame,
                             target_col: str,
                             test_size: float = 0.2) -> Dict:
     """
-    Main supervised learning pipeline.
+    Main supervised learning pipeline (Phase 4).
+    
+    This pipeline implements supervised learning for pattern discrimination,
+    evaluating how well resistance fingerprints discriminate known categories.
+    
+    Note: This is NOT for forecasting or predicting future outcomes. The metrics
+    quantify how consistently resistance patterns align with known categories.
     
     Parameters:
     -----------
     df : pd.DataFrame
         Input dataframe
     feature_cols : list
-        List of feature column names
+        List of feature column names (resistance fingerprints)
     target_col : str
-        Name of target column
+        Name of target column (species or MDR category)
     test_size : float
-        Test set proportion
+        Test set proportion (default 0.2 = 80%-20% split)
     
     Returns:
     --------
@@ -348,6 +503,23 @@ def run_supervised_pipeline(df: pd.DataFrame,
     for i, (feat, imp) in enumerate(list(feature_imp.items())[:10]):
         print(f"   {i+1}. {feat}: {imp:.4f}")
     
+    # Phase 4.6: Model Interpretation
+    print("\n7. Model Interpretation (Phase 4.6):")
+    interpretation = interpret_feature_importance(feature_imp, df, target_col)
+    
+    print("   Top discriminating antibiotics by class:")
+    for disc in interpretation['top_discriminators']:
+        print(f"   - {disc['antibiotic']} ({disc['antibiotic_class']}): {disc['importance_score']:.4f}")
+    
+    if 'ast_results' in interpretation:
+        print("\n   AST Results Context:")
+        for ab, stats in interpretation['ast_results'].items():
+            print(f"   - {ab}: {stats['resistance_rate']*100:.1f}% resistance rate ({stats['interpretation']})")
+    
+    print("\n   Interpretation Notes:")
+    for note in interpretation['interpretation_notes']:
+        print(f"   * {note}")
+    
     # Complete results
     pipeline_results = {
         'target_variable': target_col,
@@ -362,7 +534,8 @@ def run_supervised_pipeline(df: pd.DataFrame,
             'model_object': best_model
         },
         'scaler': scaler,
-        'label_encoder': label_encoder
+        'label_encoder': label_encoder,
+        'interpretation': interpretation
     }
     
     return pipeline_results
