@@ -67,6 +67,23 @@ MODELS = {
     'Naive Bayes': GaussianNB()
 }
 
+# Antibiotic class mapping for biological plausibility interpretation (Phase 4.6)
+ANTIBIOTIC_CLASSES = {
+    'AM': 'Penicillins', 'AMP': 'Penicillins',
+    'AMC': 'β-lactam/β-lactamase inhibitor', 'PRA': 'β-lactam/β-lactamase inhibitor',
+    'CN': 'Cephalosporins-1st', 'CF': 'Cephalosporins-1st',
+    'CPD': 'Cephalosporins-3rd/4th', 'CTX': 'Cephalosporins-3rd/4th',
+    'CFT': 'Cephalosporins-3rd/4th', 'CPT': 'Cephalosporins-3rd/4th',
+    'CFO': 'Cephamycins',
+    'IPM': 'Carbapenems', 'MRB': 'Carbapenems',
+    'AN': 'Aminoglycosides', 'GM': 'Aminoglycosides', 'N': 'Aminoglycosides',
+    'NAL': 'Quinolones/Fluoroquinolones', 'ENR': 'Quinolones/Fluoroquinolones',
+    'DO': 'Tetracyclines', 'TE': 'Tetracyclines',
+    'FT': 'Nitrofurans',
+    'C': 'Phenicols',
+    'SXT': 'Folate pathway inhibitors'
+}
+
 
 def prepare_data_for_classification(df: pd.DataFrame,
                                     feature_cols: List[str],
@@ -247,6 +264,28 @@ def get_feature_importance(model, feature_names: List[str]) -> Dict[str, float]:
     return importance
 
 
+def _get_resistance_interpretation(resistance_rate: float) -> str:
+    """
+    Get human-readable interpretation of resistance rate.
+    
+    Parameters:
+    -----------
+    resistance_rate : float
+        Proportion of isolates showing resistance (0.0-1.0)
+    
+    Returns:
+    --------
+    str
+        Interpretation category (High/Moderate/Low resistance)
+    """
+    if resistance_rate > 0.5:
+        return 'High resistance'
+    elif resistance_rate > 0.2:
+        return 'Moderate resistance'
+    else:
+        return 'Low resistance'
+
+
 def interpret_feature_importance(feature_importance: Dict[str, float],
                                   df: pd.DataFrame = None,
                                   target_col: str = None) -> Dict:
@@ -272,23 +311,6 @@ def interpret_feature_importance(feature_importance: Dict[str, float],
     dict
         Interpretation results including top discriminators and context
     """
-    # Antibiotic class mapping for biological plausibility interpretation
-    ANTIBIOTIC_CLASSES = {
-        'AM': 'Penicillins', 'AMP': 'Penicillins',
-        'AMC': 'β-lactam/β-lactamase inhibitor', 'PRA': 'β-lactam/β-lactamase inhibitor',
-        'CN': 'Cephalosporins-1st', 'CF': 'Cephalosporins-1st',
-        'CPD': 'Cephalosporins-3rd/4th', 'CTX': 'Cephalosporins-3rd/4th',
-        'CFT': 'Cephalosporins-3rd/4th', 'CPT': 'Cephalosporins-3rd/4th',
-        'CFO': 'Cephamycins',
-        'IPM': 'Carbapenems', 'MRB': 'Carbapenems',
-        'AN': 'Aminoglycosides', 'GM': 'Aminoglycosides', 'N': 'Aminoglycosides',
-        'NAL': 'Quinolones/Fluoroquinolones', 'ENR': 'Quinolones/Fluoroquinolones',
-        'DO': 'Tetracyclines', 'TE': 'Tetracyclines',
-        'FT': 'Nitrofurans',
-        'C': 'Phenicols',
-        'SXT': 'Folate pathway inhibitors'
-    }
-    
     interpretation = {
         'top_discriminators': [],
         'antibiotic_classes_involved': set(),
@@ -338,9 +360,7 @@ def interpret_feature_importance(feature_importance: Dict[str, float],
                 resistance_rate = (df[col_name] == 2).mean()
                 resistance_stats[ab] = {
                     'resistance_rate': float(resistance_rate),
-                    'interpretation': 'High resistance' if resistance_rate > 0.5 else 
-                                     'Moderate resistance' if resistance_rate > 0.2 else 
-                                     'Low resistance'
+                    'interpretation': _get_resistance_interpretation(resistance_rate)
                 }
         interpretation['ast_results'] = resistance_stats
     
