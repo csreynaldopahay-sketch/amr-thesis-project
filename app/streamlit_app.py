@@ -184,8 +184,7 @@ def main():
     st.markdown("""
     <div class="disclaimer">
         <strong>⚠️ Disclaimer:</strong> This tool is intended for exploratory pattern recognition 
-        and surveillance analysis only. It should not be used for clinical decision support.
-        No patient-level identifiers are processed.
+        and surveillance analysis only.
     </div>
     """, unsafe_allow_html=True)
     
@@ -453,6 +452,57 @@ def main():
                             st.write(f"Model type: {type(model_data['model']).__name__}")
                             st.write("Classes:", model_data.get('label_encoder').classes_ 
                                    if model_data.get('label_encoder') else "N/A")
+                            
+                            # Feature importance inspection
+                            model = model_data.get('model')
+                            if model is not None:
+                                feature_importance = None
+                                
+                                # Extract feature importance based on model type
+                                if hasattr(model, 'feature_importances_'):
+                                    # Tree-based models (Random Forest, Decision Tree, etc.)
+                                    feature_importance = model.feature_importances_
+                                elif hasattr(model, 'coef_'):
+                                    # Linear models (Logistic Regression, SVM with linear kernel)
+                                    coef = np.abs(model.coef_)
+                                    if len(coef.shape) > 1:
+                                        feature_importance = coef.mean(axis=0)
+                                    else:
+                                        feature_importance = coef
+                                
+                                if feature_importance is not None and len(feature_importance) > 0:
+                                    st.subheader("Feature Importance")
+                                    
+                                    # Get feature names from antibiotic columns
+                                    feature_names = [c.replace('_encoded', '') for c in antibiotic_cols]
+                                    
+                                    # Create dataframe for display
+                                    if len(feature_names) == len(feature_importance):
+                                        importance_df = pd.DataFrame({
+                                            'Antibiotic': feature_names,
+                                            'Importance': feature_importance
+                                        }).sort_values('Importance', ascending=False)
+                                        
+                                        # Display as bar chart
+                                        fig, ax = plt.subplots(figsize=(10, 6))
+                                        bars = ax.barh(importance_df['Antibiotic'][:15], 
+                                                      importance_df['Importance'][:15],
+                                                      color='steelblue', edgecolor='black')
+                                        ax.set_xlabel('Importance Score')
+                                        ax.set_ylabel('Antibiotic')
+                                        ax.set_title('Top 15 Feature Importance')
+                                        ax.invert_yaxis()  # Highest at top
+                                        plt.tight_layout()
+                                        st.pyplot(fig)
+                                        
+                                        # Display as table
+                                        with st.expander("📊 Full Feature Importance Table"):
+                                            st.dataframe(importance_df.reset_index(drop=True), 
+                                                       use_container_width=True)
+                                    else:
+                                        st.info("Feature names do not match model features.")
+                                else:
+                                    st.info("Feature importance not available for this model type.")
                         except Exception as e:
                             st.error(f"Error loading model: {e}")
             else:
