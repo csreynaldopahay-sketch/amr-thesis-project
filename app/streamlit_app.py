@@ -464,16 +464,13 @@ def main():
                                     feature_importance = model.feature_importances_
                                 elif hasattr(model, 'coef_'):
                                     # Linear models (Logistic Regression, SVM with linear kernel)
-                                    coef = np.abs(model.coef_)
-                                    if len(coef.shape) > 1:
-                                        feature_importance = coef.mean(axis=0)
-                                    else:
-                                        feature_importance = coef
+                                    coef = np.abs(model.coef_).flatten() if model.coef_.ndim == 1 else np.abs(model.coef_).mean(axis=0)
+                                    feature_importance = coef
                                 
                                 if feature_importance is not None and len(feature_importance) > 0:
                                     st.subheader("Feature Importance")
                                     
-                                    # Get feature names from antibiotic columns
+                                    # Get feature names from antibiotic columns in loaded dataset
                                     feature_names = [c.replace('_encoded', '') for c in antibiotic_cols]
                                     
                                     # Create dataframe for display
@@ -485,9 +482,9 @@ def main():
                                         
                                         # Display as bar chart
                                         fig, ax = plt.subplots(figsize=(10, 6))
-                                        bars = ax.barh(importance_df['Antibiotic'][:15], 
-                                                      importance_df['Importance'][:15],
-                                                      color='steelblue', edgecolor='black')
+                                        ax.barh(importance_df['Antibiotic'][:15], 
+                                               importance_df['Importance'][:15],
+                                               color='steelblue', edgecolor='black')
                                         ax.set_xlabel('Importance Score')
                                         ax.set_ylabel('Antibiotic')
                                         ax.set_title('Top 15 Feature Importance')
@@ -500,7 +497,8 @@ def main():
                                             st.dataframe(importance_df.reset_index(drop=True), 
                                                        use_container_width=True)
                                     else:
-                                        st.info("Feature names do not match model features.")
+                                        st.info(f"Feature count mismatch: dataset has {len(feature_names)} features, "
+                                               f"model expects {len(feature_importance)} features.")
                                 else:
                                     st.info("Feature importance not available for this model type.")
                         except Exception as e:
