@@ -16,6 +16,7 @@ from preprocessing.data_cleaning import clean_dataset, generate_cleaning_report
 from preprocessing.resistance_encoding import create_encoded_dataset
 from preprocessing.feature_engineering import prepare_analysis_ready_dataset
 from clustering.hierarchical_clustering import run_clustering_pipeline, get_cluster_summary
+from visualization.visualization import generate_all_visualizations
 from supervised.supervised_learning import run_mdr_discrimination, save_model
 from analysis.regional_environmental import run_regional_environmental_analysis
 
@@ -104,6 +105,11 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     clustered_path = os.path.join(output_dir, 'clustered_dataset.csv')
     df_clustered.to_csv(clustered_path, index=False)
     print(f"Clustered dataset saved to: {clustered_path}")
+    
+    # Phase 3.2: Visualization of resistance patterns
+    print("\n")
+    figures_dir = os.path.join(output_dir, 'figures')
+    generate_all_visualizations(df_clustered, feature_cols, linkage_matrix, figures_dir)
     
     # Cluster interpretation
     print("\n" + "=" * 50)
