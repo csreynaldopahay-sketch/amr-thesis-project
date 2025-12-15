@@ -4,6 +4,8 @@
 
 This document provides comprehensive technical documentation for the AMR Pattern Recognition pipeline, covering preprocessing decisions, clustering parameters, and model evaluation metrics.
 
+> **See also**: [METHODOLOGY.md](METHODOLOGY.md) for comprehensive research methodology and analytical framework documentation.
+
 ---
 
 ## Table of Contents
