@@ -15,6 +15,8 @@ This project implements a comprehensive data science pipeline for AMR surveillan
 - **Phase 8**: Documentation (see [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md))
 
 > **📖 For detailed step-by-step instructions on running the system, see [docs/RUNNING_THE_SYSTEM.md](docs/RUNNING_THE_SYSTEM.md)**
+>
+> **📋 For comprehensive methodology documentation, see [docs/METHODOLOGY.md](docs/METHODOLOGY.md)**
 
 ## Isolate Code Convention
 
