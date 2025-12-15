@@ -637,10 +637,12 @@ Row 6+: Data rows with isolate-level AST results
 **Model File Structure (.joblib)**:
 
 ```python
+# Saved using joblib.dump()
+# Components from sklearn.preprocessing
 {
-    'model': sklearn_estimator,  # Trained classifier
-    'scaler': StandardScaler,    # Fitted scaler
-    'label_encoder': LabelEncoder  # Fitted label encoder
+    'model': sklearn_estimator,         # Trained classifier (e.g., RandomForestClassifier)
+    'scaler': StandardScaler_instance,  # Fitted sklearn.preprocessing.StandardScaler
+    'label_encoder': LabelEncoder_instance  # Fitted sklearn.preprocessing.LabelEncoder
 }
 ```
 
