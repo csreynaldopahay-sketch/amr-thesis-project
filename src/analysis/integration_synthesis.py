@@ -68,6 +68,42 @@ AVOID_CAUSAL_TERMS = [
     "spread from"
 ]
 
+# Resistance level thresholds and labels
+RESISTANCE_LEVELS = {
+    'HIGH': 'High resistance',
+    'MODERATE_HIGH': 'Moderate-high resistance',
+    'MODERATE': 'Moderate resistance',
+    'LOW': 'Low resistance'
+}
+
+HIGH_RESISTANCE_LEVELS = [RESISTANCE_LEVELS['HIGH'], RESISTANCE_LEVELS['MODERATE_HIGH']]
+
+# Default data limitations (can be customized per study)
+DEFAULT_DATA_LIMITATIONS = [
+    "Cross-sectional data: temporal changes in resistance cannot be assessed",
+    "Geographic scope: findings may not generalize to other regions",
+    "Sample selection: hospital/clinical bias may affect environmental representation"
+]
+
+
+def _calculate_fold_enrichment(rate: float, baseline: float) -> float:
+    """
+    Calculate fold enrichment of a rate compared to baseline.
+
+    Parameters:
+    -----------
+    rate : float
+        The observed rate (0-1)
+    baseline : float
+        The baseline rate to compare against (0-1)
+
+    Returns:
+    --------
+    float
+        Fold enrichment value, or 0 if baseline is 0
+    """
+    return float(rate / baseline) if baseline > 0 else 0.0
+
 
 def _get_antibiotic_name(col_name: str) -> str:
     """
@@ -530,16 +566,16 @@ def identify_resistance_archetypes(
         low_resistance = profile[profile < 0.5].sort_values()
         low_resistance_abs = [_get_antibiotic_name(ab) for ab in low_resistance.index.tolist()]
 
-        # Calculate overall resistance level
+        # Calculate overall resistance level using constants
         mean_resistance = profile.mean()
         if mean_resistance > 1.5:
-            resistance_level = "High resistance"
+            resistance_level = RESISTANCE_LEVELS['HIGH']
         elif mean_resistance > 1.0:
-            resistance_level = "Moderate-high resistance"
+            resistance_level = RESISTANCE_LEVELS['MODERATE_HIGH']
         elif mean_resistance > 0.5:
-            resistance_level = "Moderate resistance"
+            resistance_level = RESISTANCE_LEVELS['MODERATE']
         else:
-            resistance_level = "Low resistance"
+            resistance_level = RESISTANCE_LEVELS['LOW']
 
         archetype = {
             'cluster_size': cluster_size,
@@ -964,12 +1000,11 @@ def identify_mdr_enriched_patterns(
         )
 
         for cluster, row in enriched_clusters.iterrows():
-            fold_enr = float(row['mean'] / overall_mdr) if overall_mdr > 0 else 0
             enrichment = {
                 'cluster': int(cluster),
                 'mdr_rate': float(row['mean']),
                 'sample_size': int(row['count']),
-                'fold_enrichment': fold_enr
+                'fold_enrichment': _calculate_fold_enrichment(row['mean'], overall_mdr)
             }
             mdr_patterns['mdr_enriched_clusters'].append(enrichment)
 
@@ -994,7 +1029,7 @@ def identify_mdr_enriched_patterns(
                 'region': region,
                 'mdr_rate': float(row['mean']),
                 'sample_size': int(row['count']),
-                'fold_enrichment': float(row['mean'] / overall_mdr) if overall_mdr > 0 else 0
+                'fold_enrichment': _calculate_fold_enrichment(row['mean'], overall_mdr)
             }
             mdr_patterns['mdr_enriched_regions'].append(enrichment)
 
@@ -1010,7 +1045,7 @@ def identify_mdr_enriched_patterns(
                 'environment': env,
                 'mdr_rate': float(row['mean']),
                 'sample_size': int(row['count']),
-                'fold_enrichment': float(row['mean'] / overall_mdr) if overall_mdr > 0 else 0
+                'fold_enrichment': _calculate_fold_enrichment(row['mean'], overall_mdr)
             }
             mdr_patterns['mdr_enriched_environments'].append(enrichment)
 
@@ -1026,7 +1061,7 @@ def identify_mdr_enriched_patterns(
                 'species': species,
                 'mdr_rate': float(row['mean']),
                 'sample_size': int(row['count']),
-                'fold_enrichment': float(row['mean'] / overall_mdr) if overall_mdr > 0 else 0
+                'fold_enrichment': _calculate_fold_enrichment(row['mean'], overall_mdr)
             }
             mdr_patterns['mdr_enriched_species'].append(enrichment)
 
@@ -1197,7 +1232,8 @@ def generate_negative_findings(
     cluster_col: str = 'CLUSTER',
     region_col: str = 'REGION',
     environment_col: str = 'SAMPLE_SOURCE',
-    species_col: str = 'ISOLATE_ID'
+    species_col: str = 'ISOLATE_ID',
+    data_limitations: List[str] = None
 ) -> Dict:
     """
     Generate explicit negative findings - what the data does NOT show.
@@ -1218,6 +1254,8 @@ def generate_negative_findings(
         Column name for environment
     species_col : str
         Column name for species
+    data_limitations : list, optional
+        Custom list of data limitations. If None, uses DEFAULT_DATA_LIMITATIONS.
 
     Returns:
     --------
@@ -1291,12 +1329,10 @@ def generate_negative_findings(
                 "convergent resistance evolution."
             )
 
-    # Data limitations
-    negative_findings['data_limitations'] = [
-        "Cross-sectional data: temporal changes in resistance cannot be assessed",
-        "Geographic scope: findings may not generalize to other regions",
-        "Sample selection: hospital/clinical bias may affect environmental representation"
-    ]
+    # Data limitations - use provided or default
+    negative_findings['data_limitations'] = (
+        data_limitations if data_limitations is not None else DEFAULT_DATA_LIMITATIONS.copy()
+    )
 
     return negative_findings
 
@@ -1421,10 +1457,10 @@ def generate_integrative_narrative(
         n_clusters = len(archetypes['cluster_archetypes'])
         cluster_info = archetypes['cluster_archetypes']
 
-        high_res_levels = ['High resistance', 'Moderate-high resistance']
+        # Use the module-level constant for high resistance levels
         high_res_clusters = [
             k for k, v in cluster_info.items()
-            if v.get('resistance_level') in high_res_levels
+            if v.get('resistance_level') in HIGH_RESISTANCE_LEVELS
         ]
 
         narrative.append(
@@ -1786,7 +1822,7 @@ def _generate_synthesis_summary(results: Dict, df: pd.DataFrame, feature_cols: L
         n_archetypes = len(archetypes['cluster_archetypes'])
         high_res_clusters = [
             k for k, v in archetypes['cluster_archetypes'].items()
-            if v.get('resistance_level') in ['High resistance', 'Moderate-high resistance']
+            if v.get('resistance_level') in HIGH_RESISTANCE_LEVELS
         ]
         if high_res_clusters:
             summary.append(
