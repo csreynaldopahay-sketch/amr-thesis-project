@@ -180,10 +180,22 @@ Results are categorized following CLSI guidelines:
 
 - Load and merge AST data from multiple CSV files
 - Extract metadata from filenames and isolate codes
+- **Enforce explicit metadata standardization** for traceability and reproducibility
 - Standardize antibiotic abbreviations across sources
-- Create a unified raw dataset
+- Create a unified raw dataset with validated metadata
 
-#### 3.1.2 Procedures
+#### 3.1.2 Required Metadata Columns
+
+The following metadata columns are required at ingestion for methodological validity:
+
+| Column | Description | Source |
+|--------|-------------|--------|
+| **REGION** | Geographic region (e.g., BARMM, Region VIII) | Extracted from filename |
+| **SITE** | Specific sampling site within region | Extracted from filename |
+| **ENVIRONMENT** | Environmental category (Water, Fish, Hospital) | Derived from sampling source |
+| **SAMPLING_SOURCE** | Detailed sampling source (e.g., Drinking Water) | Parsed from isolate code |
+
+#### 3.1.3 Procedures
 
 1. **CSV File Parsing**: Each CSV file contains structured data with:
    - Header rows identifying CODE, ISOLATE ID, and summary columns
@@ -197,27 +209,48 @@ Results are categorized following CLSI guidelines:
    "1NET_P2-AMR_Region VIII-Eastern Visayas - Copy - LOR-ALEGRIA.csv"
    → Region: "Region VIII - Eastern Visayas", Site: "ALEGRIA"
    
-   # From isolate code: National site, Local site, Sample source
+   # From isolate code: National site, Local site, Sample source, Environment
    "EC_OADWR1C3"
-   → National: Ormoc, Local: Alegria, Source: Drinking Water
+   → National: Ormoc, Local: Alegria, Source: Drinking Water, Environment: Water
    ```
 
-3. **Antibiotic Standardization**: Variant names are mapped to standard abbreviations.
+3. **Environment Categorization**:
 
-#### 3.1.3 Output
+| Sampling Source | Environment Category |
+|-----------------|---------------------|
+| Drinking Water, Lake Water, River Water | Water |
+| Fish Banak, Fish Gusaw, Fish Tilapia, Fish Kaolang | Fish |
+| Effluent Water Untreated, Effluent Water Treated | Hospital |
 
-- `unified_raw_dataset.csv`: Consolidated dataset with all isolates and metadata
+4. **Antibiotic Standardization**: Variant names are mapped to standard abbreviations.
+
+5. **Metadata Validation**: Coverage statistics are computed for all required columns.
+
+#### 3.1.4 Output
+
+- `unified_raw_dataset.csv`: Consolidated dataset with all isolates and validated metadata
 
 ### 3.2 Data Cleaning (Phase 2.2 & 2.3)
 
 #### 3.2.1 Objectives
 
-- Standardize species names and resistance values
-- Remove duplicate isolates
-- Handle missing data systematically
+- **Validate resistance values** (only S, I, R allowed; no multi-label entries)
+- Standardize species names and resistance values using **controlled vocabularies**
+- **Detect and resolve duplicate isolates** with detailed logging
+- Implement **formal missing data strategy** with transparent, defensible methodology
 - Filter antibiotics and isolates based on coverage thresholds
+- Generate comprehensive exclusion summary table
 
-#### 3.2.2 Species Name Standardization
+#### 3.2.2 Validation Rules
+
+| Rule | Description | Action |
+|------|-------------|--------|
+| Valid Values | Only {S, I, R} allowed | Invalid values set to NULL |
+| Multi-label Entries | No "S/R", "S,I", etc. | Invalid values set to NULL |
+
+#### 3.2.3 Controlled Vocabularies
+
+**Species Name Standardization:**
 
 | Variant | Standardized Name |
 |---------|-------------------|
@@ -225,30 +258,46 @@ Results are categorized following CLSI guidelines:
 | Klebsiella pneumoniae ssp pneumoniae | Klebsiella pneumoniae |
 | Enterobacter cloacae complex | Enterobacter cloacae |
 
-#### 3.2.3 Resistance Value Standardization
+**Antibiotic Standardization:**
 
-| Original Values | Standardized Value |
-|-----------------|-------------------|
-| S, SUSCEPTIBLE | S |
-| I, INTERMEDIATE | I |
-| R, RESISTANT, *R | R |
-| Empty, NaN, "-" | NULL |
+| Full Name | Standard Abbreviation |
+|-----------|----------------------|
+| Ampicillin | AM |
+| Amoxicillin-Clavulanate | AMC |
+| Gentamicin | GM |
+| ... | ... |
 
-#### 3.2.4 Missing Data Handling
+#### 3.2.4 Formal Missing Data Strategy
 
-| Parameter | Threshold | Rationale |
-|-----------|-----------|-----------|
-| Minimum antibiotic coverage | ≥50% | Antibiotics tested in fewer than 50% of isolates are excluded to ensure robust pattern discrimination |
-| Maximum missing data per isolate | ≤50% | Isolates with >50% missing AST values are excluded to maintain data quality |
+This methodology converts implicit missing data handling into a transparent, defensible strategy.
 
-#### 3.2.5 Duplicate Removal
+| Parameter | Default Threshold | Rationale |
+|-----------|-------------------|-----------|
+| **Minimum antibiotic coverage** | ≥70% | Antibiotics tested in fewer than 70% of isolates are excluded to ensure robust pattern discrimination |
+| **Maximum missing data per isolate** | ≤30% | Isolates with >30% missing AST values are excluded to maintain data quality |
 
-Duplicates are identified by the `CODE` column and removed, keeping the first occurrence.
+**Procedure:**
+1. Compute antibiotic test coverage (% of isolates tested for each antibiotic)
+2. Retain antibiotics tested in ≥70% of isolates
+3. Remove isolates exceeding 30% missing-value threshold
+4. Generate exclusion summary table documenting all decisions
+
+#### 3.2.5 Duplicate Detection and Resolution
+
+Duplicates are identified by the `CODE` column and removed, keeping the first occurrence. All duplicate removals are logged with:
+- Index and CODE of removed record
+- Reason for removal
 
 #### 3.2.6 Output
 
 - `cleaned_dataset.csv`: Cleaned and standardized data
-- `cleaning_report.txt`: Documentation of cleaning decisions and statistics
+- `cleaning_report.txt`: Comprehensive documentation including:
+  - Thresholds applied
+  - Data retention summary
+  - Validation summary
+  - Antibiotic test coverage table
+  - Exclusion summary table
+  - Cleaning actions log
 
 ### 3.3 Resistance Encoding (Phase 2.4)
 
@@ -280,40 +329,72 @@ Ordinal encoding preserves the biological meaning of resistance levels and enabl
 
 #### 3.4.1 Objective
 
-Derive clinically relevant features from encoded resistance data.
+Derive clinically relevant features from encoded resistance data using **formalized definitions** with explicit citations.
 
-#### 3.4.2 Derived Features
+#### 3.4.2 MAR Index (Multiple Antibiotic Resistance Index)
+
+**Formula:**
+```
+MAR = a / b
+
+Where:
+  a = Number of antibiotics to which the isolate is resistant (R)
+  b = Total number of antibiotics tested on the isolate
+```
+
+**Reference:** Krumperman PH. (1983). Multiple antibiotic resistance indexing of Escherichia coli to identify high-risk sources of fecal contamination of foods. *Applied and Environmental Microbiology*, 46(1), 165-170.
+
+**Interpretation:**
+- MAR > 0.2 indicates isolates from high-risk contamination sources
+- MAR = 0 indicates fully susceptible isolate
+- MAR = 1 indicates pan-resistant isolate
+
+#### 3.4.3 MDR Classification
+
+**Definition:** An isolate is classified as Multi-Drug Resistant (MDR) if it exhibits resistance to at least one agent in **≥3 antimicrobial categories**.
+
+**Reference:** Magiorakos AP, et al. (2012). Multidrug-resistant, extensively drug-resistant and pandrug-resistant bacteria: an international expert proposal for interim standard definitions for acquired resistance. *Clinical Microbiology and Infection*, 18(3), 268-281. DOI: 10.1111/j.1469-0691.2011.03570.x
+
+**Antimicrobial Categories:**
+
+| Category | Antibiotics |
+|----------|-------------|
+| Penicillins | AM, AMP |
+| β-lactam/BLI combinations | AMC, PRA |
+| Cephalosporins (1st generation) | CN, CF |
+| Cephalosporins (3rd/4th generation) | CPD, CTX, CFT, CPT |
+| Cephamycins | CFO |
+| Cephalosporin/BLI combinations | CZA |
+| Carbapenems | IPM, MRB |
+| Aminoglycosides | AN, GM, N |
+| Quinolones/Fluoroquinolones | NAL, ENR |
+| Tetracyclines | DO, TE |
+| Nitrofurans | FT |
+| Phenicols | C |
+| Folate pathway inhibitors | SXT |
+
+#### 3.4.4 Derived Features Summary
 
 | Feature | Formula | Description |
 |---------|---------|-------------|
-| **MAR_INDEX_COMPUTED** | Resistant antibiotics / Total tested | Multiple Antibiotic Resistance index (0-1) |
-| **RESISTANCE_COUNT** | Count where encoded value = 2 | Total number of resistant antibiotics |
-| **RESISTANT_CLASSES_COUNT** | Count of unique resistant classes | Number of antibiotic classes showing resistance |
-| **MDR_FLAG** | Boolean: Classes ≥ 3 | Multi-Drug Resistant indicator |
+| **MAR_INDEX_COMPUTED** | a / b (Krumperman, 1983) | Multiple Antibiotic Resistance index (0-1) |
+| **RESISTANCE_COUNT** | Count where encoded = 2 | Total number of resistant antibiotics |
+| **RESISTANT_CLASSES_COUNT** | Count of unique resistant classes | Number of antimicrobial categories with resistance |
+| **MDR_FLAG** | Boolean: Classes ≥ 3 (Magiorakos, 2012) | Multi-Drug Resistant indicator |
 | **MDR_CATEGORY** | "MDR" or "Non-MDR" | Categorical MDR status |
-| **{AB}_RESISTANT** | Binary: 1 if R, 0 otherwise | Per-antibiotic binary resistance indicator |
+| **{AB}_RESISTANT** | Binary: 1 if R, 0 if S/I | Per-antibiotic binary resistance indicator |
 
-#### 3.4.3 MDR Definition
+#### 3.4.5 Structural Data Separation
 
-Following CDC/CLSI guidelines, MDR is defined as resistance to **at least 3 antibiotic classes**. The antibiotic classes used for MDR calculation are:
+To improve pipeline clarity and downstream modeling safety, the feature engineering phase produces physically separated outputs:
 
-1. Penicillins
-2. β-lactam/β-lactamase inhibitor combinations
-3. Cephalosporins (1st generation)
-4. Cephalosporins (3rd/4th generation)
-5. Cephamycins
-6. Cephalosporin/BLI combinations
-7. Carbapenems
-8. Aminoglycosides
-9. Quinolones/Fluoroquinolones
-10. Tetracyclines
-11. Nitrofurans
-12. Phenicols
-13. Folate pathway inhibitors
+| Output | Description | Purpose |
+|--------|-------------|---------|
+| `analysis_ready_dataset.csv` | Full combined dataset | Complete data for reference |
+| `feature_matrix_X.csv` | Encoded resistance values only | Input for clustering/ML models |
+| `metadata.csv` | Sample identification and derived features | Interpretation and stratification |
 
-#### 3.4.4 Output
-
-- `analysis_ready_dataset.csv`: Final dataset with all computed features
+This separation prevents accidental use of metadata as model features.
 
 ---
 

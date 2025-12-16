@@ -62,9 +62,12 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
         print("ERROR: No data loaded. Check your CSV files.")
         return
     
-    # Phase 2.2 & 2.3: Data Cleaning
+    # Phase 2.2 & 2.3: Data Cleaning (with formal missing data strategy)
     print("\n")
-    df_clean, cleaning_report = clean_dataset(df_raw)
+    # Using stricter thresholds: 70% antibiotic coverage, 30% isolate missing threshold
+    df_clean, cleaning_report = clean_dataset(df_raw, 
+                                               min_antibiotic_coverage=70.0,
+                                               max_isolate_missing=30.0)
     
     clean_path = os.path.join(output_dir, 'cleaned_dataset.csv')
     df_clean.to_csv(clean_path, index=False)
@@ -81,16 +84,13 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     df_encoded.to_csv(encoded_path, index=False)
     print(f"Encoded dataset saved to: {encoded_path}")
     
-    # Phase 2.5: Feature Engineering
+    # Phase 2.5: Feature Engineering (with structural data separation)
     print("\n")
     encoded_cols = encoding_info['encoded_columns']
-    df_analysis, feature_matrix, metadata, feature_info = prepare_analysis_ready_dataset(
-        df_encoded, encoded_cols
-    )
-    
     analysis_path = os.path.join(output_dir, 'analysis_ready_dataset.csv')
-    df_analysis.to_csv(analysis_path, index=False)
-    print(f"Analysis-ready dataset saved to: {analysis_path}")
+    df_analysis, feature_matrix, metadata, feature_info = prepare_analysis_ready_dataset(
+        df_encoded, encoded_cols, output_path=analysis_path
+    )
     
     # =============================================
     # PHASE 3: Unsupervised Structure Identification
