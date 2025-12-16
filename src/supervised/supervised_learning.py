@@ -700,6 +700,103 @@ def compare_feature_importance_across_models(results: Dict, top_n: int = 10) -> 
     return agreement
 
 
+def check_stability_across_seeds(df: pd.DataFrame,
+                                  feature_cols: List[str],
+                                  target_col: str,
+                                  seeds: List[int] = None,
+                                  n_seeds: int = 3) -> Dict:
+    """
+    Check stability of results across different random seeds (Phase 3 Requirement 6.2).
+    
+    Re-runs the split with different seeds and reports consistency qualitatively.
+    Shows robustness without heavy computation.
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe
+    feature_cols : list
+        List of feature column names
+    target_col : str
+        Target column name
+    seeds : list, optional
+        List of random seeds to test
+    n_seeds : int
+        Number of seeds to test if seeds not provided
+    
+    Returns:
+    --------
+    dict
+        Stability analysis results
+    """
+    if seeds is None:
+        seeds = [42, 123, 456][:n_seeds]
+    
+    stability = {
+        'seeds_tested': seeds,
+        'metrics_per_seed': [],
+        'feature_rankings_per_seed': {},
+        'stability_summary': ''
+    }
+    
+    accuracies = []
+    f1_scores = []
+    
+    for seed in seeds:
+        # Prepare data with this seed
+        result = prepare_data_for_classification(
+            df, feature_cols, target_col, random_state=seed
+        )
+        X_train, X_test, y_train, y_test, label_encoder, scaler, imputer, _ = result
+        
+        # Train Random Forest (representative model)
+        model_config = MODELS['Random Forest']
+        model = model_config['instance'].__class__(**model_config['instance'].get_params())
+        model.fit(X_train, y_train)
+        
+        # Evaluate
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred, average='macro', zero_division=0)
+        
+        accuracies.append(acc)
+        f1_scores.append(f1)
+        
+        stability['metrics_per_seed'].append({
+            'seed': seed,
+            'accuracy': acc,
+            'f1_macro': f1
+        })
+        
+        # Get feature importance ranking - use feature_cols directly (no need to check against df)
+        feature_names = [c.replace('_encoded', '') for c in feature_cols]
+        importance = get_feature_importance(model, feature_names, 'Random Forest')
+        top_features = list(importance['scores'].keys())[:5]
+        stability['feature_rankings_per_seed'][seed] = top_features
+    
+    # Calculate stability metrics
+    acc_std = np.std(accuracies)
+    f1_std = np.std(f1_scores)
+    
+    # Check feature ranking consistency
+    all_top5 = [set(feats) for feats in stability['feature_rankings_per_seed'].values()]
+    common_features = set.intersection(*all_top5) if all_top5 else set()
+    
+    if acc_std < 0.05 and f1_std < 0.05:
+        stability_level = 'High stability'
+    elif acc_std < 0.10 and f1_std < 0.10:
+        stability_level = 'Moderate stability'
+    else:
+        stability_level = 'Variable results'
+    
+    stability['stability_summary'] = (
+        f"{stability_level}: Accuracy std={acc_std:.4f}, F1 std={f1_std:.4f}. "
+        f"{len(common_features)} feature(s) consistently in top-5 across all seeds."
+    )
+    
+    return stability
+
+
 def create_antibiotic_importance_table(results: Dict, df: pd.DataFrame, task_type: str) -> pd.DataFrame:
     """
     Create antibiotic-level summary table (Phase 3 Requirement 5.2).
@@ -722,11 +819,18 @@ def create_antibiotic_importance_table(results: Dict, df: pd.DataFrame, task_typ
     """
     importance_data = []
     
-    # Get importance from models that have it (RF and LR)
-    for model_name in ['Random Forest', 'Logistic Regression']:
-        if model_name not in results:
-            continue
-        
+    # Get importance from models that have native feature importance
+    # Dynamically check which models have importance data
+    models_with_importance = []
+    for model_name in results:
+        importance = results[model_name]['metrics'].get('feature_importance', {})
+        if isinstance(importance, dict) and 'scores' in importance:
+            if importance['scores']:  # Non-empty scores
+                models_with_importance.append(model_name)
+        elif importance:
+            models_with_importance.append(model_name)
+    
+    for model_name in models_with_importance:
         importance = results[model_name]['metrics'].get('feature_importance', {})
         if isinstance(importance, dict) and 'scores' in importance:
             scores = importance['scores']
@@ -734,6 +838,9 @@ def create_antibiotic_importance_table(results: Dict, df: pd.DataFrame, task_typ
         else:
             scores = importance if importance else {}
             method = 'Unknown'
+        
+        if not scores:
+            continue
         
         for antibiotic, score in scores.items():
             ab_class = ANTIBIOTIC_CLASSES.get(antibiotic, 'Unknown')
@@ -900,10 +1007,20 @@ def run_supervised_pipeline(df: pd.DataFrame,
     best_model = model_results[best_model_name]['model']
     best_f1 = comparison_df.iloc[0]['F1-Score (Macro)']
     
+    # Dynamic interpretation based on F1 score
+    if best_f1 >= 0.8:
+        f1_interpretation = "strong discriminative capacity"
+    elif best_f1 >= 0.6:
+        f1_interpretation = "moderate discriminative capacity"
+    elif best_f1 >= 0.4:
+        f1_interpretation = "limited discriminative capacity"
+    else:
+        f1_interpretation = "weak pattern alignment"
+    
     print(f"\n5. Best performing model: {best_model_name}")
     print(f"   Category: {model_results[best_model_name]['category']}")
     print(f"   F1-Score (Macro): {best_f1:.4f}")
-    print(f"   Interpretation: Model demonstrates consistent discriminative capacity")
+    print(f"   Interpretation: Model demonstrates {f1_interpretation}")
     
     # ===========================================================================
     # FEATURE IMPORTANCE WITH MODEL AGREEMENT CHECK
