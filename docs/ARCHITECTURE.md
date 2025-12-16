@@ -8,24 +8,64 @@ This document provides a comprehensive architectural design for the AMR (Antimic
 
 ## Table of Contents
 
-1. [Executive Summary](#1-executive-summary)
-2. [System Overview](#2-system-overview)
-3. [High-Level Architecture](#3-high-level-architecture)
-4. [Data Flow Architecture](#4-data-flow-architecture)
-5. [Component Architecture](#5-component-architecture)
-6. [Data Model and Schemas](#6-data-model-and-schemas)
-7. [Module Interfaces](#7-module-interfaces)
-8. [Technology Stack](#8-technology-stack)
-9. [Deployment Architecture](#9-deployment-architecture)
-10. [Security Considerations](#10-security-considerations)
-11. [Quality Attributes](#11-quality-attributes)
-12. [Appendices](#appendices)
+1. [Architecture Overview](#1-architecture-overview)
+2. [Executive Summary](#2-executive-summary)
+3. [System Overview](#3-system-overview)
+4. [High-Level Architecture](#4-high-level-architecture)
+5. [Data Flow Architecture](#5-data-flow-architecture)
+6. [Component Architecture](#6-component-architecture)
+7. [Component Breakdown Table](#7-component-breakdown-table)
+8. [Data Model and Schemas](#8-data-model-and-schemas)
+9. [Module Interfaces](#9-module-interfaces)
+10. [Technology Stack](#10-technology-stack)
+11. [Deployment Architecture](#11-deployment-architecture)
+12. [Non-Functional Considerations](#12-non-functional-considerations)
+13. [Design Rationale & Justifications](#13-design-rationale--justifications)
+14. [Quality Attributes](#14-quality-attributes)
+15. [Appendices](#appendices)
 
 ---
 
-## 1. Executive Summary
+## 1. Architecture Overview
 
-### 1.1 Purpose
+### Narrative Description
+
+The AMR Thesis Project implements a **data-driven analytical system** designed for antimicrobial resistance (AMR) surveillance, pattern recognition, and exploratory analysis. The system is specifically architected as a **research platform** for analysis and exploration—**not** for real-time prediction or clinical decision-making.
+
+**System Purpose and Intent**
+
+The architecture supports a complete analytical workflow from raw antimicrobial susceptibility testing (AST) data to interactive exploration and reporting. The system enables researchers to:
+
+- Consolidate and preprocess multi-source AST data from environmental and aquatic samples
+- Apply unsupervised learning techniques to discover natural resistance pattern groupings
+- Evaluate pattern discrimination capabilities through supervised learning (as read-only analysis, not prediction)
+- Analyze regional and environmental associations with resistance patterns
+- Interactively explore and visualize results through a web-based dashboard
+
+**Architectural Philosophy**
+
+The design prioritizes **reproducibility**, **modularity**, and **transparency**—qualities essential for academic research and thesis-level work. All analytical models are treated as **read-only artifacts** at deployment; no real-time model updates or predictions occur during dashboard interaction. This separation ensures:
+
+1. **Scientific Reproducibility**: Fixed random states, documented preprocessing decisions, and versioned outputs
+2. **Clear Separation of Concerns**: Distinct layers for data, processing, and presentation
+3. **Academic Appropriateness**: Realistic scope suitable for thesis-level implementation
+4. **Auditability**: Complete documentation of methodological decisions and transformations
+
+**Key Architectural Constraints**
+
+| Constraint | Description |
+|------------|-------------|
+| **No Real-Time Prediction** | System performs exploratory analysis only; no clinical decision support |
+| **Read-Only Models** | Trained models are artifacts loaded for evaluation, not updated at runtime |
+| **Local Deployment** | Designed for workstation-level deployment, not cloud infrastructure |
+| **Batch Processing** | Data flows through sequential phases; no streaming analytics |
+| **Environmental Data Only** | No patient-level identifiers; focuses on environmental/aquatic samples |
+
+---
+
+## 2. Executive Summary
+
+### 2.1 Purpose
 
 The AMR Thesis Project implements a comprehensive analytical pipeline for antimicrobial resistance (AMR) surveillance and pattern recognition. The system processes antimicrobial susceptibility testing (AST) data from bacterial isolates collected across multiple Philippine regions, enabling researchers to:
 
@@ -34,7 +74,7 @@ The AMR Thesis Project implements a comprehensive analytical pipeline for antimi
 - Analyze regional and environmental factors associated with resistance patterns
 - Visualize and interact with analysis results through an interactive dashboard
 
-### 1.2 Scope
+### 2.2 Scope
 
 This architectural design covers:
 
@@ -43,7 +83,7 @@ This architectural design covers:
 - **Presentation Layer**: Visualization and interactive dashboard
 - **Infrastructure**: Deployment and runtime environment
 
-### 1.3 Architectural Goals
+### 2.3 Architectural Goals
 
 | Goal | Description |
 |------|-------------|
@@ -55,9 +95,9 @@ This architectural design covers:
 
 ---
 
-## 2. System Overview
+## 3. System Overview
 
-### 2.1 System Context Diagram
+### 3.1 System Context Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -85,7 +125,7 @@ This architectural design covers:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 System Boundaries
+### 3.2 System Boundaries
 
 | Boundary | In Scope | Out of Scope |
 |----------|----------|--------------|
@@ -94,7 +134,7 @@ This architectural design covers:
 | **Users** | Research personnel | Clinical decision support |
 | **Deployment** | Local workstation | Cloud-based infrastructure |
 
-### 2.3 Key Stakeholders
+### 3.3 Key Stakeholders
 
 | Stakeholder | Role | Interests |
 |-------------|------|-----------|
@@ -105,16 +145,16 @@ This architectural design covers:
 
 ---
 
-## 3. High-Level Architecture
+## 4. High-Level Architecture
 
-### 3.1 Architectural Style
+### 4.1 Architectural Style
 
 The system follows a **Layered Architecture** combined with a **Pipeline Pattern**:
 
 - **Layered Architecture**: Separates concerns into distinct layers (data, processing, presentation)
 - **Pipeline Pattern**: Sequential processing phases with well-defined inputs and outputs
 
-### 3.2 System Layers Diagram
+### 4.2 System Layers Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -152,7 +192,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Processing Pipeline Sequence
+### 4.3 Processing Pipeline Sequence
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
@@ -175,9 +215,9 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-## 4. Data Flow Architecture
+## 5. Data Flow Architecture
 
-### 4.1 End-to-End Data Flow Diagram
+### 5.1 End-to-End Data Flow Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -260,7 +300,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Data Transformation Summary
+### 5.2 Data Transformation Summary
 
 | Phase | Input | Transformation | Output |
 |-------|-------|----------------|--------|
@@ -276,9 +316,9 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-## 5. Component Architecture
+## 6. Component Architecture
 
-### 5.1 Component Overview Diagram
+### 6.1 Component Overview Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -348,9 +388,9 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Detailed Component Specifications
+### 6.2 Detailed Component Specifications
 
-#### 5.2.1 Data Ingestion Component
+#### 6.2.1 Data Ingestion Component
 
 **Module**: `src/preprocessing/data_ingestion.py`
 
@@ -370,7 +410,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.2 Data Cleaning Component
+#### 6.2.2 Data Cleaning Component
 
 **Module**: `src/preprocessing/data_cleaning.py`
 
@@ -392,7 +432,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.3 Resistance Encoding Component
+#### 6.2.3 Resistance Encoding Component
 
 **Module**: `src/preprocessing/resistance_encoding.py`
 
@@ -412,7 +452,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.4 Feature Engineering Component
+#### 6.2.4 Feature Engineering Component
 
 **Module**: `src/preprocessing/feature_engineering.py`
 
@@ -433,7 +473,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.5 Clustering Component
+#### 6.2.5 Clustering Component
 
 **Module**: `src/clustering/hierarchical_clustering.py`
 
@@ -458,7 +498,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.6 Visualization Component
+#### 6.2.6 Visualization Component
 
 **Module**: `src/visualization/visualization.py`
 
@@ -483,7 +523,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.7 Supervised Learning Component
+#### 6.2.7 Supervised Learning Component
 
 **Module**: `src/supervised/supervised_learning.py`
 
@@ -512,7 +552,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.8 Regional Environmental Analysis Component
+#### 6.2.8 Regional Environmental Analysis Component
 
 **Module**: `src/analysis/regional_environmental.py`
 
@@ -531,7 +571,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.9 Integration and Synthesis Component
+#### 6.2.9 Integration and Synthesis Component
 
 **Module**: `src/analysis/integration_synthesis.py`
 
@@ -549,7 +589,7 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-#### 5.2.10 Dashboard Component
+#### 6.2.10 Dashboard Component
 
 **Module**: `app/streamlit_app.py`
 
@@ -578,9 +618,89 @@ The system follows a **Layered Architecture** combined with a **Pipeline Pattern
 
 ---
 
-## 6. Data Model and Schemas
+## 7. Component Breakdown Table
 
-### 6.1 Input Data Schema
+This section provides a consolidated summary of all system components, their responsibilities, inputs, and outputs.
+
+### 7.1 Layer-by-Layer Component Summary
+
+#### Data Ingestion Layer
+
+| Component | Responsibility | Input | Output |
+|-----------|----------------|-------|--------|
+| `data_ingestion.py` | Load, parse, and consolidate CSV files; extract metadata from filenames and isolate codes | Raw CSV files (*.csv) | `unified_raw_dataset.csv` |
+
+#### Data Preprocessing & Validation Layer
+
+| Component | Responsibility | Input | Output |
+|-----------|----------------|-------|--------|
+| `data_cleaning.py` | Standardize values, remove duplicates, filter by coverage thresholds, generate cleaning report | `unified_raw_dataset.csv` | `cleaned_dataset.csv`, `cleaning_report.txt` |
+| `resistance_encoding.py` | Encode S/I/R to 0/1/2, generate resistance fingerprints | `cleaned_dataset.csv` | `encoded_dataset.csv` |
+| `feature_engineering.py` | Compute MAR index, MDR status, resistant class counts, binary indicators | `encoded_dataset.csv` | `analysis_ready_dataset.csv`, feature matrix, metadata |
+
+#### Analysis & Modeling Layer
+
+| Component | Responsibility | Input | Output |
+|-----------|----------------|-------|--------|
+| `hierarchical_clustering.py` | Unsupervised structure identification using Ward's hierarchical clustering | Feature matrix | `clustered_dataset.csv`, linkage matrix, clustering info |
+| `supervised_learning.py` | Pattern discrimination evaluation (species, MDR); feature importance analysis | Feature matrix, labels | Model files (*.joblib), evaluation metrics, importance scores |
+| `regional_environmental.py` | PCA, cluster distribution analysis, chi-square tests | Clustered dataset | PCA results, distribution statistics, figures |
+| `integration_synthesis.py` | Synthesize findings, identify archetypes, MDR-enriched patterns | All analysis results | Integration report, archetype definitions |
+
+#### Visualization & Interaction Layer
+
+| Component | Responsibility | Input | Output |
+|-----------|----------------|-------|--------|
+| `visualization.py` | Generate heatmaps, dendrograms, distribution plots | Processed data, linkage matrix | PNG figures in `figures/` directory |
+| `streamlit_app.py` | Interactive dashboard for exploration and visualization | All processed datasets, models | Web interface (port 8501) |
+
+#### Persistence / Artifact Storage Layer
+
+| Component | Responsibility | Input | Output |
+|-----------|----------------|-------|--------|
+| File System (`data/processed/`) | Store processed datasets at each pipeline stage | CSV files | Versioned CSV files |
+| Model Storage (`data/models/`) | Persist trained classifiers with preprocessing info | Trained models, scalers, encoders | `*.joblib` serialized files |
+| Figure Storage (`data/processed/figures/`) | Store generated visualizations | Matplotlib figures | PNG image files |
+
+#### Deployment Layer
+
+| Component | Responsibility | Input | Output |
+|-----------|----------------|-------|--------|
+| `main.py` | Orchestrate full pipeline execution | Raw CSV directory | All processed outputs |
+| Streamlit Server | Host interactive dashboard | Processed datasets | Web application |
+
+### 7.2 Inter-Component Data Flow Matrix
+
+```
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│                      COMPONENT INTERACTION MATRIX                                  │
+├───────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                    │
+│  FROM / TO          │ Ingestion │ Cleaning │ Encoding │ Features │ Clustering    │
+│  ───────────────────┼───────────┼──────────┼──────────┼──────────┼──────────────│
+│  Raw CSV Files      │     ●     │          │          │          │               │
+│  Data Ingestion     │           │    ●     │          │          │               │
+│  Data Cleaning      │           │          │    ●     │          │               │
+│  Resistance Encoding│           │          │          │    ●     │               │
+│  Feature Engineering│           │          │          │          │      ●        │
+│                                                                                    │
+│  FROM / TO          │ Supervised│ Regional │ Integration│ Visualize│ Dashboard   │
+│  ───────────────────┼───────────┼──────────┼───────────┼──────────┼─────────────│
+│  Feature Engineering│     ●     │          │           │          │      ●       │
+│  Clustering         │           │    ●     │     ●     │    ●     │      ●       │
+│  Supervised Learning│           │          │     ●     │          │      ●       │
+│  Regional Analysis  │           │          │     ●     │    ●     │      ●       │
+│  Integration        │           │          │           │          │      ●       │
+│                                                                                    │
+│  Legend: ● = Data flows from row component to column component                     │
+└───────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 8. Data Model and Schemas
+
+### 8.1 Input Data Schema
 
 **Raw CSV Structure**:
 
@@ -591,9 +711,9 @@ Row 5: MIC  | INT| INT | INT | INT| ... (value type indicators)
 Row 6+: Data rows with isolate-level AST results
 ```
 
-### 6.2 Processed Data Schemas
+### 8.2 Processed Data Schemas
 
-#### 6.2.1 unified_raw_dataset.csv
+#### 8.2.1 unified_raw_dataset.csv
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -613,7 +733,7 @@ Row 6+: Data rows with isolate-level AST results
 | NUM_ANTIBIOTICS_TESTED | integer | Count of antibiotics tested |
 | MAR_INDEX | float | Original MAR index |
 
-#### 6.2.2 analysis_ready_dataset.csv (additional columns)
+#### 8.2.2 analysis_ready_dataset.csv (additional columns)
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -626,13 +746,13 @@ Row 6+: Data rows with isolate-level AST results
 | MDR_CATEGORY | string | "MDR" or "Non-MDR" |
 | {AB}_RESISTANT | integer | Binary resistance indicator (0/1) |
 
-#### 6.2.3 clustered_dataset.csv (additional columns)
+#### 8.2.3 clustered_dataset.csv (additional columns)
 
 | Column | Type | Description |
 |--------|------|-------------|
 | CLUSTER | integer | Assigned cluster label (1-n) |
 
-### 6.3 Model Persistence Schema
+### 8.3 Model Persistence Schema
 
 **Model File Structure (.joblib)**:
 
@@ -648,9 +768,9 @@ Row 6+: Data rows with isolate-level AST results
 
 ---
 
-## 7. Module Interfaces
+## 9. Module Interfaces
 
-### 7.1 Preprocessing Pipeline Interface
+### 9.1 Preprocessing Pipeline Interface
 
 ```python
 # Phase 2.1: Data Ingestion
@@ -719,7 +839,7 @@ def prepare_analysis_ready_dataset(
     """
 ```
 
-### 7.2 Analysis Pipeline Interface
+### 9.2 Analysis Pipeline Interface
 
 ```python
 # Phase 3.1: Clustering
@@ -814,7 +934,7 @@ def run_integration_synthesis(
     """
 ```
 
-### 7.3 Pipeline Orchestration Interface
+### 9.3 Pipeline Orchestration Interface
 
 ```python
 # main.py
@@ -836,9 +956,9 @@ def run_full_pipeline(
 
 ---
 
-## 8. Technology Stack
+## 10. Technology Stack
 
-### 8.1 Technology Stack Diagram
+### 10.1 Technology Stack Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -906,7 +1026,7 @@ def run_full_pipeline(
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 8.2 Dependency Matrix
+### 10.2 Dependency Matrix
 
 | Dependency | Version | Purpose | Components Using |
 |------------|---------|---------|------------------|
@@ -921,9 +1041,9 @@ def run_full_pipeline(
 
 ---
 
-## 9. Deployment Architecture
+## 11. Deployment Architecture
 
-### 9.1 Local Deployment Diagram
+### 11.1 Local Deployment Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -956,7 +1076,7 @@ def run_full_pipeline(
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 9.2 Installation Procedure
+### 11.2 Installation Procedure
 
 ```bash
 # 1. Clone repository
@@ -976,7 +1096,7 @@ pip install -r requirements.txt
 python -c "import pandas; import sklearn; import streamlit; print('OK')"
 ```
 
-### 9.3 Execution Modes
+### 11.3 Execution Modes
 
 | Mode | Command | Purpose |
 |------|---------|---------|
@@ -984,7 +1104,7 @@ python -c "import pandas; import sklearn; import streamlit; print('OK')"
 | **Dashboard** | `streamlit run app/streamlit_app.py` | Interactive exploration |
 | **Module Test** | `python -m src.preprocessing.data_ingestion` | Test individual module |
 
-### 9.4 Directory Structure at Runtime
+### 11.4 Directory Structure at Runtime
 
 ```
 amr-thesis-project/
@@ -1016,35 +1136,199 @@ amr-thesis-project/
 └── *.csv (input files)
 ```
 
+### 11.5 Model Handling (Training vs Inference)
+
+This system treats all analytical models as **read-only artifacts** at deployment. The architecture clearly separates training-time and inference-time operations:
+
+| Phase | Mode | Operations | Output |
+|-------|------|------------|--------|
+| **Training** | Batch Pipeline (`main.py`) | Data preprocessing, model fitting, cross-validation | `*.joblib` model files |
+| **Inference** | Dashboard (`streamlit_app.py`) | Load pre-trained models, apply to loaded data | Visualizations, metrics display |
+
+**Training Pipeline (Offline):**
+```
+Raw Data → Preprocessing → Feature Engineering → Model Training → Model Serialization
+                                                        │
+                                                        ▼
+                                              data/models/*.joblib
+```
+
+**Dashboard Inference (Online):**
+```
+                              data/models/*.joblib
+                                      │
+                                      ▼
+Processed Data → Load Models → Apply Transforms → Display Results
+```
+
+**User Interaction Boundaries:**
+- Users interact **only** through the Streamlit dashboard or CLI
+- No model retraining occurs during dashboard interaction
+- Dashboard displays pre-computed results and static visualizations
+- Users can upload new data for visualization but models remain fixed
+
 ---
 
-## 10. Security Considerations
+## 12. Non-Functional Considerations
 
-### 10.1 Data Privacy
+This section details how the architecture addresses non-functional requirements essential for a thesis-level academic project.
 
+### 12.1 Modularity and Maintainability
+
+| Aspect | Implementation | Benefit |
+|--------|----------------|---------|
+| **Separation of Concerns** | Distinct modules for preprocessing, clustering, supervised learning, analysis, and visualization | Changes in one area don't affect others |
+| **Single Responsibility** | Each module has one primary purpose | Easier to understand, test, and maintain |
+| **Standard Interfaces** | Well-defined function signatures with type hints | Clear contracts between components |
+| **Configuration Isolation** | Parameters defined at module level; easily adjustable | Flexibility without code changes |
+
+**Module Independence Diagram:**
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           MODULE DEPENDENCY GRAPH                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐           │
+│  │   data_         │────▶│   data_         │────▶│   resistance_   │           │
+│  │   ingestion     │     │   cleaning      │     │   encoding      │           │
+│  └─────────────────┘     └─────────────────┘     └─────────────────┘           │
+│                                                         │                       │
+│                                                         ▼                       │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐           │
+│  │   visualization │◀────│   hierarchical_ │◀────│   feature_      │           │
+│  │                 │     │   clustering    │     │   engineering   │           │
+│  └─────────────────┘     └─────────────────┘     └─────────────────┘           │
+│                                                         │                       │
+│                                                         ▼                       │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐           │
+│  │   streamlit_    │◀────│   integration_  │◀────│   supervised_   │           │
+│  │   app           │     │   synthesis     │     │   learning      │           │
+│  └─────────────────┘     └─────────────────┘     └─────────────────┘           │
+│                                                                                 │
+│  Note: Arrows indicate data flow direction, not import dependencies             │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 12.2 Reproducibility
+
+| Requirement | Implementation | Documentation |
+|-------------|----------------|---------------|
+| **Deterministic Results** | Fixed `random_state=42` across all stochastic operations | Reported in METHODOLOGY.md |
+| **Versioned Outputs** | Timestamped output directories; CSV snapshots at each phase | Output file naming convention |
+| **Documented Parameters** | All algorithm parameters logged in cleaning report and metadata | `cleaning_report.txt`, clustering info dict |
+| **Environment Specification** | `requirements.txt` with pinned minimum versions | Reproducible environment setup |
+| **Audit Trail** | Cleaning report documents all transformation decisions | `cleaning_report.txt` |
+
+**Reproducibility Checklist:**
+- [x] Random states fixed and reported
+- [x] Data transformations documented
+- [x] Coverage thresholds explicitly stated
+- [x] Model hyperparameters logged
+- [x] Output files versioned
+
+### 12.3 Scalability (Conceptual)
+
+While the system is designed for workstation-level deployment, the architecture supports conceptual scalability:
+
+| Dimension | Current Implementation | Scalability Path |
+|-----------|------------------------|------------------|
+| **Data Volume** | DataFrame-based; suitable for thousands of isolates | Chunked processing or Dask for larger datasets |
+| **Processing Parallelism** | `n_jobs=-1` for Random Forest utilizes all CPU cores | Can extend to other sklearn parallelizable operations |
+| **Storage** | File-based CSV/joblib; efficient for thesis scale | Database integration possible (SQLite, PostgreSQL) |
+| **User Concurrency** | Single-user Streamlit dashboard | Multi-user deployment via Streamlit Cloud or containerization |
+
+> **Note:** Enterprise-scale scalability is out of scope for this thesis-level project.
+
+### 12.4 Ethical and Security Considerations
+
+#### Data Privacy
 | Concern | Mitigation |
 |---------|------------|
-| **Patient Identifiers** | System processes environmental samples only; no patient data |
-| **Data Anonymization** | Isolate codes contain no personally identifiable information |
-| **Data Transmission** | Local processing only; no external data transmission |
+| **No Patient Identifiers** | System processes environmental/aquatic samples only |
+| **Anonymized Isolate Codes** | Codes contain location/sample info, no personal data |
+| **Local Processing** | No external data transmission; all processing on-premises |
 
-### 10.2 Data Integrity
-
+#### Data Integrity
 | Concern | Mitigation |
 |---------|------------|
-| **Input Validation** | Data cleaning phase validates and standardizes all inputs |
-| **Reproducibility** | Fixed random states (42) ensure reproducible results |
-| **Audit Trail** | Cleaning report documents all data transformations |
+| **Input Validation** | Data cleaning validates all resistance values (S/I/R only) |
+| **Transformation Audit** | Cleaning report documents all data modifications |
+| **Reproducible Outputs** | Fixed random states ensure consistent results |
 
-### 10.3 Usage Restrictions
-
-> ⚠️ **Critical Disclaimer**: This tool is intended for **exploratory pattern recognition and surveillance analysis only**. It should **NOT** be used for clinical decision support.
+#### Ethical Use Boundaries
+> ⚠️ **Critical Disclaimer**: This system is intended for **exploratory pattern recognition and surveillance analysis only**. It should **NOT** be used for:
+> - Clinical decision support
+> - Treatment recommendations
+> - Diagnostic purposes
+> - Patient-level risk assessment
 
 ---
 
-## 11. Quality Attributes
+## 13. Design Rationale & Justifications
 
-### 11.1 Reliability
+This section consolidates the key architectural decisions and their justifications.
+
+### 13.1 Architectural Style Selection
+
+**Decision**: Layered Architecture combined with Pipeline Pattern
+
+| Alternative Considered | Reason for Rejection | Selected Approach |
+|------------------------|---------------------|-------------------|
+| Microservices | Overkill for thesis-level scope; adds deployment complexity | Modular monolith with clear layer boundaries |
+| Event-Driven | Unnecessary for batch processing; no real-time requirements | Sequential pipeline with defined data transformations |
+| Model-View-Controller | Dashboard-only pattern; doesn't capture full pipeline | Layered architecture spanning all phases |
+
+**Justification**: The combination of layered architecture and pipeline pattern provides:
+1. Clear separation between data, processing, and presentation concerns
+2. Sequential processing stages that align with the research methodology
+3. Academic appropriateness with realistic implementation scope
+4. Ease of debugging and validation at each stage
+
+### 13.2 Technology Stack Decisions
+
+| Decision | Justification | Alternatives Rejected |
+|----------|---------------|----------------------|
+| **Python 3.8+** | Industry standard for data science; extensive ecosystem | R (less general-purpose), Julia (smaller ecosystem) |
+| **pandas** | De facto standard for tabular data; excellent documentation | Polars (newer, less mature), raw NumPy (less convenient) |
+| **scikit-learn** | Comprehensive, well-documented ML library; academic credibility | TensorFlow/PyTorch (overkill for classical ML), statsmodels (less comprehensive) |
+| **Streamlit** | Rapid dashboard development; Python-native; minimal frontend expertise required | Dash (more complex), Flask+templates (more manual work) |
+| **Ward's Linkage** | Produces compact, balanced clusters; well-suited for resistance patterns | Complete linkage (chaining tendency), K-means (requires k specification, different assumptions) |
+
+### 13.3 Data Processing Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Ordinal Encoding (S=0, I=1, R=2)** | Preserves biological ordering of resistance levels; enables meaningful distance calculations |
+| **Median Imputation** | Robust to outliers in resistance data; preserves central tendency |
+| **70% Coverage Threshold** | Balances data quality with retention; ensures robust pattern discrimination |
+| **30% Missing Data Threshold** | Excludes isolates with excessive gaps; maintains analysis integrity |
+
+### 13.4 Model Handling Philosophy
+
+**Decision**: Models as read-only artifacts at deployment
+
+**Justification**:
+1. **Reproducibility**: Fixed models ensure consistent results across dashboard sessions
+2. **Auditability**: Training decisions are documented and versioned
+3. **Scope Clarity**: System is for exploration, not real-time prediction
+4. **Simplicity**: Avoids complex model versioning and update mechanisms
+
+### 13.5 Separation of Concerns
+
+| Layer | Responsibility | Isolation Mechanism |
+|-------|----------------|---------------------|
+| **Data Ingestion** | Load and consolidate raw data | Separate module; outputs CSV checkpoint |
+| **Data Cleaning** | Standardize and validate | Separate module; generates cleaning report |
+| **Feature Engineering** | Compute derived features | Separate module; outputs feature matrix and metadata |
+| **Analysis** | Clustering, supervised learning, PCA | Separate modules per analysis type |
+| **Visualization** | Generate static plots | Standalone module; reads processed data |
+| **Dashboard** | Interactive exploration | Loads all outputs; no processing logic |
+
+---
+
+## 14. Quality Attributes
+
+### 14.1 Reliability
 
 | Attribute | Implementation |
 |-----------|----------------|
@@ -1052,7 +1336,7 @@ amr-thesis-project/
 | **Missing Data** | Graceful handling via imputation (median strategy) |
 | **Edge Cases** | Filters for insufficient samples (e.g., <2 for stratified split) |
 
-### 11.2 Maintainability
+### 14.2 Maintainability
 
 | Attribute | Implementation |
 |-----------|----------------|
@@ -1060,7 +1344,7 @@ amr-thesis-project/
 | **Documentation** | Comprehensive docstrings and markdown documentation |
 | **Code Style** | Consistent naming conventions and structure |
 
-### 11.3 Usability
+### 14.3 Usability
 
 | Attribute | Implementation |
 |-----------|----------------|
@@ -1069,7 +1353,7 @@ amr-thesis-project/
 | **Progress Feedback** | Console output for each pipeline phase |
 | **Output Files** | Well-organized directory structure |
 
-### 11.4 Performance
+### 14.4 Performance
 
 | Attribute | Implementation |
 |-----------|----------------|
