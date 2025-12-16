@@ -99,8 +99,16 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     print("\n")
     feature_cols = [c for c in df_analysis.columns if c.endswith('_encoded')]
     
+    # Create artifacts directory for clustering objects
+    artifacts_dir = os.path.join(output_dir, 'clustering_artifacts')
+    
+    # Run clustering with explicit parameters and robustness check
     df_clustered, linkage_matrix, clustering_info = run_clustering_pipeline(
-        df_analysis, feature_cols, n_clusters=5
+        df_analysis, 
+        feature_cols, 
+        n_clusters=5,
+        perform_robustness=True,  # Enable robustness check with Manhattan distance
+        output_dir=artifacts_dir  # Save clustering artifacts
     )
     
     clustered_path = os.path.join(output_dir, 'clustered_dataset.csv')
@@ -110,24 +118,30 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     # Phase 3.2: Visualization of resistance patterns
     print("\n")
     figures_dir = os.path.join(output_dir, 'figures')
-    generate_all_visualizations(df_clustered, feature_cols, linkage_matrix, figures_dir)
+    generate_all_visualizations(df_clustered, feature_cols, linkage_matrix, figures_dir, clustering_info)
     
-    # Cluster interpretation
-    print("\n" + "=" * 50)
-    print("PHASE 3.3: Cluster Interpretation")
-    print("=" * 50)
+    # Cluster interpretation using consistent C1, C2, ... labeling
+    print("\n" + "=" * 70)
+    print("PHASE 3.3: Cluster Interpretation (Resistance Phenotypes)")
+    print("=" * 70)
+    print("\nNOTE: Clusters represent RESISTANCE PHENOTYPES, not taxonomic groups.")
+    print("      Metadata associations are correlational, not causal.\n")
     
-    cluster_summary = get_cluster_summary(df_clustered)
+    cluster_summary = get_cluster_summary(df_clustered, feature_cols)
     
     for cluster_id, info in cluster_summary.items():
-        print(f"\nCluster {cluster_id}:")
+        print(f"\nC{cluster_id} (Resistance Phenotype):")
         print(f"  Isolates: {info['n_isolates']} ({info['percentage']:.1f}%)")
         if 'mdr_proportion' in info:
-            print(f"  MDR proportion: {info['mdr_proportion']:.2%}")
+            print(f"  MDR proportion: {info['mdr_proportion']:.1f}%")
         if 'mean_mar_index' in info:
             print(f"  Mean MAR index: {info['mean_mar_index']:.4f}")
+        if 'dominant_species' in info:
+            print(f"  Dominant species: {info['dominant_species']} ({info.get('dominant_species_pct', 0):.1f}%)")
+        if 'top_resistant_antibiotics' in info:
+            print(f"  Top resistant antibiotics: {', '.join(info['top_resistant_antibiotics'][:3])}")
     
-    # =============================================
+    # ==============================================
     # PHASE 4: Supervised Learning
     # =============================================
     
