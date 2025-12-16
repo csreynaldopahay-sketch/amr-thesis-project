@@ -1,9 +1,19 @@
 """
-AMR Pattern Recognition Dashboard
-Phase 7 - Interactive Streamlit Application for AMR Surveillance
+AMR Pattern Recognition & Exploratory Analysis Dashboard
+Phase 6/7 - Interactive Streamlit Application for AMR Surveillance
 
-This tool is intended for exploratory pattern recognition and surveillance analysis only.
-It should not be used for clinical decision support.
+IMPORTANT DISCLAIMER:
+This tool is intended exclusively for exploratory antimicrobial resistance 
+pattern recognition and surveillance analysis. It does NOT provide:
+- Clinical decision support
+- Predictive assessments
+- Treatment recommendations
+- Risk scores
+
+Data Privacy:
+- Uploaded data is processed in memory only
+- No data is stored on disk or transmitted externally
+- No raw inputs are logged
 """
 
 import streamlit as st
@@ -21,6 +31,23 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+# Import Phase 6 modular components if available
+try:
+    from data_loader import (
+        validate_csv_schema, get_antibiotic_columns as get_antibiotic_cols_v2,
+        display_expected_format, get_dataset_info
+    )
+    from interpretation import (
+        get_methodology_content, get_limitations_content, get_disclaimers,
+        get_about_content, get_glossary
+    )
+    from supervised_models import (
+        get_model_disclaimer, get_feature_importance_disclaimer
+    )
+    PHASE6_AVAILABLE = True
+except ImportError:
+    PHASE6_AVAILABLE = False
+
 # Page configuration
 st.set_page_config(
     page_title="AMR Pattern Recognition Dashboard",
@@ -29,33 +56,57 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS with Phase 6 enhancements
 st.markdown("""
 <style>
     .main-header {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         color: #1f77b4;
         text-align: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.2rem;
     }
     .sub-header {
-        font-size: 1.2rem;
+        font-size: 1.0rem;
         color: #666;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
+        font-style: italic;
     }
     .disclaimer {
         background-color: #fff3cd;
-        border: 1px solid #ffc107;
-        border-radius: 5px;
-        padding: 1rem;
-        margin-bottom: 1rem;
+        border: 2px solid #ffc107;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .disclaimer-title {
+        color: #856404;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .disclaimer-text {
+        color: #856404;
     }
     .metric-card {
         background-color: #f8f9fa;
         border-radius: 10px;
         padding: 1rem;
         text-align: center;
+    }
+    .footer {
+        text-align: center;
+        color: #6c757d;
+        font-size: 0.85rem;
+        padding: 20px 0;
+        border-top: 1px solid #e9ecef;
+        margin-top: 50px;
+    }
+    .info-box {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 10px 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -174,17 +225,26 @@ def create_pca_plot(X_pca, df, color_col, pca):
 
 
 def main():
-    # Header
-    st.markdown('<h1 class="main-header">🦠 AMR Pattern Recognition Dashboard</h1>', 
+    # Header - Updated for Phase 6 (explicit non-predictive positioning)
+    st.markdown('<h1 class="main-header">🦠 AMR Pattern Recognition & Exploratory Analysis Dashboard</h1>', 
                 unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Interactive Tool for Antimicrobial Resistance Pattern Analysis</p>',
+    st.markdown('<p class="sub-header">Interactive Tool for Antimicrobial Resistance Pattern Analysis | Not for Clinical Use</p>',
                 unsafe_allow_html=True)
     
-    # Disclaimer
+    # Main Disclaimer - HARD-CODED on landing page (Phase 6 requirement)
     st.markdown("""
     <div class="disclaimer">
-        <strong>⚠️ Disclaimer:</strong> This tool is intended for exploratory pattern recognition 
-        and surveillance analysis only.
+        <p class="disclaimer-title">⚠️ Important Disclaimer</p>
+        <p class="disclaimer-text">
+            This tool is intended <strong>exclusively</strong> for exploratory antimicrobial resistance 
+            pattern recognition and surveillance analysis. It does <strong>NOT</strong> provide:
+            <ul style="color: #856404; margin-top: 10px;">
+                <li>Clinical decision support</li>
+                <li>Predictive assessments</li>
+                <li>Treatment recommendations</li>
+                <li>Risk scores</li>
+            </ul>
+        </p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -222,13 +282,14 @@ def main():
     # Identify columns
     antibiotic_cols = get_antibiotic_cols(df)
     
-    # Display options
-    st.sidebar.header("📊 Display Options")
+    # Display options - Updated for Phase 6 with Methodology and Limitations tabs
+    st.sidebar.header("📊 Analysis")
     
     analysis_type = st.sidebar.selectbox(
         "Select Analysis",
         ["Overview", "Resistance Heatmap", "Cluster Analysis", "PCA Analysis", 
-         "Regional Distribution", "Model Evaluation", "Integration & Synthesis"]
+         "Regional Distribution", "Model Evaluation", "Integration & Synthesis",
+         "Methodology", "Limitations"]
     )
     
     # Main content area
@@ -268,7 +329,16 @@ def main():
             st.dataframe(col_info, use_container_width=True)
     
     elif analysis_type == "Resistance Heatmap":
-        st.header("🔥 Resistance Profile Heatmap")
+        st.header("🔥 Resistance Profile Heatmap (Read-Only)")
+        
+        # Phase 6 requirement: Info box about read-only visualization
+        st.markdown("""
+        <div class="info-box">
+            <strong>ℹ️ About this visualization:</strong> This heatmap shows resistance patterns 
+            across isolates and antibiotics. The visualization is <strong>read-only</strong> - 
+            it displays pre-computed results without modification.
+        </div>
+        """, unsafe_allow_html=True)
         
         if antibiotic_cols:
             cluster_col = None
@@ -425,13 +495,23 @@ def main():
     elif analysis_type == "Model Evaluation":
         st.header("🤖 Model Evaluation Summary")
         
+        # Phase 6 requirement: Disclaimer near model results
         st.markdown("""
-        This section shows the results of supervised learning models trained to 
-        discriminate resistance patterns.
+        <div class="info-box">
+            <strong>📊 Interpretation Note:</strong> Metrics shown are <em>pattern consistency measures</em>, 
+            not predictive performance. They quantify how resistance patterns align with known categories 
+            within this dataset only. <strong>No retraining or single-sample inference is available.</strong>
+        </div>
+        """, unsafe_allow_html=True)
         
+        st.markdown("""
         **Interpretation Note:** Model metrics quantify how consistently resistance 
         patterns align with known categories (e.g., species, MDR status), 
         not predictive performance for future samples.
+        
+        - **Accuracy**: Proportion of isolates where resistance patterns align with category
+        - **Precision/Recall/F1**: Consistency of pattern-category alignment
+        - Feature importance shows **ASSOCIATIVE** patterns only (not causal)
         """)
         
         # Check for saved model results
@@ -699,12 +779,123 @@ def main():
                        "2) Module not found in src/analysis directory. "
                        "Run 'pip install -r requirements.txt' to install dependencies.")
     
-    # Footer
+    # =========================================================================
+    # METHODOLOGY TAB - Phase 6 Requirement: Scientific Transparency
+    # =========================================================================
+    elif analysis_type == "Methodology":
+        st.header("📚 Methodology")
+        
+        if PHASE6_AVAILABLE:
+            methodology = get_methodology_content()
+            
+            tabs = st.tabs(["Overview", "Preprocessing", "Clustering", "Supervised Learning", "PCA"])
+            
+            with tabs[0]:
+                st.markdown(methodology['overview'])
+            
+            with tabs[1]:
+                st.markdown(methodology['data_preprocessing'])
+            
+            with tabs[2]:
+                st.markdown(methodology['clustering_method'])
+            
+            with tabs[3]:
+                st.markdown(methodology['supervised_discrimination'])
+            
+            with tabs[4]:
+                st.markdown(methodology['pca_usage'])
+            
+            # Glossary
+            st.subheader("📖 Glossary")
+            glossary = get_glossary()
+            for term, definition in glossary.items():
+                with st.expander(term):
+                    st.write(definition)
+        else:
+            st.markdown("""
+            ## Methodology Overview
+            
+            This tool implements a multi-phase analytical pipeline for antimicrobial 
+            resistance (AMR) pattern recognition and surveillance analysis.
+            
+            ### Data Preprocessing
+            - Data cleaning and validation (S/I/R values only)
+            - Missing data handling with transparent thresholds
+            - Resistance encoding: S→0, I→1, R→2
+            - Feature engineering: MAR Index, MDR classification
+            
+            ### Clustering Method
+            - Algorithm: Hierarchical Agglomerative Clustering
+            - Linkage: Ward's method (minimizes within-cluster variance)
+            - Distance: Euclidean
+            - Clusters represent **resistance phenotypes**, NOT taxonomic groups
+            
+            ### Supervised Learning (Pattern Discrimination)
+            - Purpose: Evaluate how resistance patterns discriminate known categories
+            - This is **pattern discrimination**, NOT prediction
+            - Models: Logistic Regression, Random Forest, k-NN
+            - Metrics: Macro-averaged precision, recall, F1-score
+            
+            ### PCA
+            - Purpose: Dimensionality reduction for visualization
+            - Preserves variance while reducing complexity
+            """)
+    
+    # =========================================================================
+    # LIMITATIONS TAB - Phase 6 Requirement: Explicit Claim Boundaries
+    # =========================================================================
+    elif analysis_type == "Limitations":
+        st.header("⚠️ Limitations & Claim Boundaries")
+        
+        if PHASE6_AVAILABLE:
+            limitations = get_limitations_content()
+            
+            st.markdown(limitations['overview'])
+            st.markdown(limitations['no_temporal_inference'])
+            st.markdown(limitations['no_causal_inference'])
+            st.markdown(limitations['no_predictive_claims'])
+            st.markdown(limitations['no_transmission_inference'])
+            st.markdown(limitations['dataset_dependency'])
+            st.markdown(limitations['data_quality'])
+        else:
+            st.markdown("""
+            ## Limitations & Claim Boundaries
+            
+            This section explicitly documents what this analysis does NOT show.
+            
+            ### ❌ No Temporal Inference
+            - This cross-sectional study cannot determine temporal trends
+            - No claims about increasing/decreasing resistance
+            
+            ### ❌ No Causal Inference
+            - Associations do NOT imply causation
+            - Environmental factors are not claimed to "cause" resistance
+            - Use: "associated with", "enriched in"
+            - Avoid: "driven by", "caused by"
+            
+            ### ❌ No Predictive Claims
+            - Model metrics describe pattern consistency only
+            - NOT predictive performance for future samples
+            
+            ### ❌ No Transmission Inference
+            - Cannot identify transmission pathways
+            - Requires genomic data (WGS) not available here
+            
+            ### ⚠️ Dataset-Dependent Results
+            - Results specific to this dataset
+            - May not generalize to other regions/time periods
+            - Sample selection may introduce bias
+            """)
+    
+    # =========================================================================
+    # FOOTER - Phase 6 Requirement: Hard-coded disclaimer
+    # =========================================================================
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; color: #666; font-size: 0.8rem;">
-        AMR Pattern Recognition Dashboard | Built with Streamlit<br>
-        For research and surveillance purposes only
+    <div class="footer">
+        <strong>AMR Pattern Recognition & Exploratory Analysis Dashboard</strong><br>
+        For research and surveillance purposes only | Not for clinical use<br>
+        <em>This tool does not provide clinical decision support or predictive assessments.</em>
     </div>
     """, unsafe_allow_html=True)
 
