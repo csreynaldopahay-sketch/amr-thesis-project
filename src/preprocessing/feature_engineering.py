@@ -137,8 +137,6 @@ def compute_mar_index(row: pd.Series,
     --------
     float or None
         MAR index value (0.0 to 1.0) or None if no antibiotics were tested
-    float or None
-        MAR index value
     """
     tested = 0
     resistant = 0
@@ -281,6 +279,37 @@ def determine_mdr_status(row: pd.Series,
     return resistant_classes_count >= min_classes
 
 
+def _safe_encode_binary_resistance(value, resistance_threshold: int = 2) -> Optional[int]:
+    """
+    Safely convert encoded resistance value to binary (R=1, non-R=0).
+    
+    Parameters:
+    -----------
+    value : any
+        Encoded resistance value
+    resistance_threshold : int
+        Threshold for resistance (default: 2 for R)
+    
+    Returns:
+    --------
+    int or None
+        1 if resistant, 0 if susceptible/intermediate, None if missing
+    """
+    if pd.isna(value):
+        return None
+    try:
+        # Try float first to handle '2.0' strings, then convert to int
+        return 1 if int(float(value)) >= resistance_threshold else 0
+    except (ValueError, TypeError):
+        # Handle non-numeric string values
+        value_str = str(value).strip().upper()
+        if value_str == 'R':
+            return 1
+        elif value_str in ('S', 'I'):
+            return 0
+        return None
+
+
 def create_binary_resistance_features(df: pd.DataFrame,
                                      antibiotic_cols: List[str]) -> pd.DataFrame:
     """
@@ -309,9 +338,7 @@ def create_binary_resistance_features(df: pd.DataFrame,
         if col in df_binary.columns:
             ab_name = col.replace('_encoded', '')
             # R (encoded as 2) -> 1, S or I -> 0, missing -> NaN
-            df_binary[f'{ab_name}_RESISTANT'] = df_binary[col].apply(
-                lambda x: 1 if pd.notna(x) and int(x) >= 2 else (0 if pd.notna(x) else np.nan)
-            )
+            df_binary[f'{ab_name}_RESISTANT'] = df_binary[col].apply(_safe_encode_binary_resistance)
     
     return df_binary
 
@@ -395,13 +422,9 @@ def add_derived_features(df: pd.DataFrame,
     )
     df_features['MDR_CATEGORY'] = df_features['MDR_FLAG'].map({True: 'MDR', False: 'Non-MDR'})
     
-    # Add binary resistance indicators (R vs non-R)
+    # Add binary resistance indicators using the helper function
     print("6. Creating binary resistance indicators (R=1, S/I=0)...")
-    for col in antibiotic_cols:
-        ab_name = col.replace('_encoded', '')
-        df_features[f'{ab_name}_RESISTANT'] = df_features[col].apply(
-            lambda x: 1 if pd.notna(x) and int(x) >= 2 else (0 if pd.notna(x) else np.nan)
-        )
+    df_features = create_binary_resistance_features(df_features, antibiotic_cols)
     
     # Summary statistics
     mdr_count = df_features['MDR_FLAG'].sum()
