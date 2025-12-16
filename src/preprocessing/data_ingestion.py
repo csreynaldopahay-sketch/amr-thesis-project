@@ -1,6 +1,15 @@
 """
 Data Ingestion and Consolidation Module for AMR Thesis Project
 Phase 2.1 - Load, merge, and add metadata to CSV files from different regions and sites
+
+This module enforces explicit metadata standardization to ensure traceability,
+reproducibility, and stratified analysis capability.
+
+Required metadata columns at ingestion:
+- REGION: Geographic region (e.g., BARMM, Region VIII)
+- SITE: Specific sampling site within region
+- ENVIRONMENT: Environmental category (Water, Fish, Hospital)
+- SAMPLING_SOURCE: Detailed sampling source (e.g., Drinking Water, Fish Tilapia)
 """
 
 import pandas as pd
@@ -9,6 +18,7 @@ import os
 import re
 from pathlib import Path
 from typing import Tuple, Dict, List, Optional
+import warnings
 
 
 # Standard antibiotic abbreviations we expect
@@ -21,15 +31,52 @@ STANDARD_ANTIBIOTICS = [
     'AMI', 'GEN', 'NEO', 'NLA', 'MAR', 'DOX', 'TET', 'NIT', 'CHL'
 ]
 
+# Required metadata columns for valid ingestion
+REQUIRED_METADATA_COLUMNS = ['REGION', 'SITE', 'ENVIRONMENT', 'SAMPLING_SOURCE']
+
+# Environment categorization mapping (sampling source -> environment type)
+ENVIRONMENT_MAPPING = {
+    'Drinking Water': 'Water',
+    'Lake Water': 'Water',
+    'River Water': 'Water',
+    'Fish Banak': 'Fish',
+    'Fish Gusaw': 'Fish',
+    'Fish Tilapia': 'Fish',
+    'Fish Kaolang': 'Fish',
+    'Effluent Water Untreated': 'Hospital',
+    'Effluent Water Treated': 'Hospital',
+}
+
 
 def parse_isolate_code(code: str) -> Dict[str, str]:
     """
     Parse isolate code to extract metadata based on naming convention.
+    
+    Isolate code format: [Species Prefix]_[National Site][Local Site][Sample Source][Replicate][Colony]
+    Example: EC_OADWR1C3
+    - EC = Escherichia coli (Species Prefix)
+    - O = Ormoc (National Site)
+    - A = Alegria (Local Site)  
+    - DW = Drinking Water (Sample Source)
+    - R1 = Replicate 1
+    - C3 = Colony 3
+    
+    Returns:
+    --------
+    dict
+        Dictionary containing parsed metadata fields:
+        - national_site: Mapped national site name
+        - local_site: Mapped local site name
+        - sample_source: Detailed sampling source (standardized name)
+        - environment: Environment category (Water, Fish, Hospital)
+        - replicate: Replicate number
+        - colony: Colony number
     """
     metadata = {
         'national_site': None,
         'local_site': None,
         'sample_source': None,
+        'environment': None,
         'replicate': None,
         'colony': None
     }
@@ -81,11 +128,23 @@ def parse_isolate_code(code: str) -> Dict[str, str]:
         local_char = code_clean[1].upper()
         metadata['local_site'] = local_site_map.get(local_char, local_char)
     
-    # Parse sample source (two or three letters after local site)
-    sample_match = re.search(r'[A-Z]{2}([A-Z]{2,3})', code_clean.upper())
+    # Parse sample source (two letters after local site, before replicate R or colony C)
+    # Pattern: [National][Local][SampleSource][Replicate][Colony]
+    # Example: OLDWR3C1 -> OL = national+local, DW = sample source, R3 = replicate, C1 = colony
+    # The sample source can be 2-3 letters (DW, LW, FB, FG, RW, FT, EWU, EWT, FK)
+    sample_match = re.search(r'^[A-Z]{2}([A-Z]{2,3})(?:R\d|C\d)', code_clean.upper())
     if sample_match:
         sample_code = sample_match.group(1)
         metadata['sample_source'] = sample_source_map.get(sample_code, sample_code)
+        # Derive environment from sample source
+        metadata['environment'] = ENVIRONMENT_MAPPING.get(metadata['sample_source'], 'Unknown')
+    else:
+        # Fallback: try to find known sample source codes anywhere in the string
+        for code in sample_source_map.keys():
+            if code in code_clean.upper():
+                metadata['sample_source'] = sample_source_map[code]
+                metadata['environment'] = ENVIRONMENT_MAPPING.get(metadata['sample_source'], 'Unknown')
+                break
     
     # Parse replicate number (R followed by digit)
     replicate_match = re.search(r'R(\d)', code_clean.upper())
@@ -246,7 +305,8 @@ def process_csv_file(filepath: str) -> pd.DataFrame:
             row_data.update({
                 'NATIONAL_SITE': code_metadata['national_site'],
                 'LOCAL_SITE': code_metadata['local_site'],
-                'SAMPLE_SOURCE': code_metadata['sample_source'],
+                'SAMPLING_SOURCE': code_metadata['sample_source'],  # Explicit standardized name
+                'ENVIRONMENT': code_metadata['environment'],  # Environment category
                 'REPLICATE': code_metadata['replicate'],
                 'COLONY': code_metadata['colony']
             })
@@ -301,9 +361,55 @@ def load_all_csv_files(data_dir: str) -> pd.DataFrame:
     return master_df
 
 
+def validate_required_metadata(df: pd.DataFrame) -> Dict[str, any]:
+    """
+    Validate that required metadata columns exist and report coverage.
+    
+    This ensures traceability, reproducibility, and stratified analysis capability.
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe
+    
+    Returns:
+    --------
+    dict
+        Validation report with coverage statistics
+    """
+    validation_report = {
+        'columns_present': [],
+        'columns_missing': [],
+        'coverage': {},
+        'warnings': [],
+        'is_valid': True
+    }
+    
+    for col in REQUIRED_METADATA_COLUMNS:
+        if col in df.columns:
+            validation_report['columns_present'].append(col)
+            # Calculate coverage (non-null percentage)
+            non_null_count = df[col].notna().sum()
+            coverage = (non_null_count / len(df)) * 100 if len(df) > 0 else 0
+            validation_report['coverage'][col] = coverage
+            
+            if coverage < 80:
+                validation_report['warnings'].append(
+                    f"Warning: {col} has only {coverage:.1f}% coverage (below 80% threshold)"
+                )
+        else:
+            validation_report['columns_missing'].append(col)
+            validation_report['is_valid'] = False
+    
+    return validation_report
+
+
 def create_unified_dataset(input_dir: str, output_path: Optional[str] = None) -> pd.DataFrame:
     """
-    Main function to create unified raw dataset.
+    Main function to create unified raw dataset with explicit metadata standardization.
+    
+    Ensures traceability, reproducibility, and stratified analysis capability
+    by enforcing required metadata columns at ingestion.
     
     Parameters:
     -----------
@@ -315,7 +421,7 @@ def create_unified_dataset(input_dir: str, output_path: Optional[str] = None) ->
     Returns:
     --------
     pd.DataFrame
-        Unified raw dataset
+        Unified raw dataset with validated metadata columns
     """
     print("=" * 50)
     print("PHASE 2.1: Data Ingestion and Consolidation")
@@ -327,10 +433,27 @@ def create_unified_dataset(input_dir: str, output_path: Optional[str] = None) ->
     if master_df.empty:
         return master_df
     
-    # Reorder columns for clarity
-    metadata_cols = ['CODE', 'ISOLATE_ID', 'REGION', 'SITE', 'NATIONAL_SITE', 
-                     'LOCAL_SITE', 'SAMPLE_SOURCE', 'REPLICATE', 'COLONY', 
-                     'ESBL', 'SOURCE_FILE']
+    # Validate required metadata columns
+    print("\nValidating required metadata columns...")
+    validation_report = validate_required_metadata(master_df)
+    
+    if validation_report['columns_present']:
+        print(f"  Present: {', '.join(validation_report['columns_present'])}")
+    if validation_report['columns_missing']:
+        warnings.warn(f"Missing required metadata columns: {validation_report['columns_missing']}")
+        print(f"  Missing: {', '.join(validation_report['columns_missing'])}")
+    
+    print("\nMetadata coverage:")
+    for col, coverage in validation_report['coverage'].items():
+        print(f"  {col}: {coverage:.1f}%")
+    
+    for warning in validation_report['warnings']:
+        print(f"  {warning}")
+    
+    # Reorder columns for clarity (with new metadata columns)
+    metadata_cols = ['CODE', 'ISOLATE_ID', 'REGION', 'SITE', 'ENVIRONMENT', 
+                     'SAMPLING_SOURCE', 'NATIONAL_SITE', 'LOCAL_SITE', 
+                     'REPLICATE', 'COLONY', 'ESBL', 'SOURCE_FILE']
     
     summary_cols = ['SCORED_RESISTANCE', 'NUM_ANTIBIOTICS_TESTED', 'MAR_INDEX']
     
@@ -365,3 +488,7 @@ if __name__ == "__main__":
         print(f"Shape: {df.shape}")
         print(f"Regions: {df['REGION'].unique()}")
         print(f"Sites: {df['SITE'].unique()}")
+        if 'ENVIRONMENT' in df.columns:
+            print(f"Environments: {df['ENVIRONMENT'].unique()}")
+        if 'SAMPLING_SOURCE' in df.columns:
+            print(f"Sampling Sources: {df['SAMPLING_SOURCE'].unique()}")

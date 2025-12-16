@@ -202,11 +202,11 @@ def create_encoded_dataset(df: pd.DataFrame,
     print("PHASE 2.4: Encoding Resistance Outcomes")
     print("=" * 50)
     
-    # Identify antibiotic columns
-    metadata_cols = ['CODE', 'ISOLATE_ID', 'REGION', 'SITE', 'NATIONAL_SITE',
-                     'LOCAL_SITE', 'SAMPLE_SOURCE', 'REPLICATE', 'COLONY',
-                     'ESBL', 'SOURCE_FILE', 'SCORED_RESISTANCE', 
-                     'NUM_ANTIBIOTICS_TESTED', 'MAR_INDEX']
+    # Identify antibiotic columns (exclude metadata and summary columns)
+    metadata_cols = ['CODE', 'ISOLATE_ID', 'REGION', 'SITE', 'ENVIRONMENT',
+                     'SAMPLING_SOURCE', 'NATIONAL_SITE', 'LOCAL_SITE', 
+                     'REPLICATE', 'COLONY', 'ESBL', 'SOURCE_FILE', 
+                     'SCORED_RESISTANCE', 'NUM_ANTIBIOTICS_TESTED', 'MAR_INDEX']
     
     antibiotic_cols = [c for c in df.columns if c not in metadata_cols]
     
