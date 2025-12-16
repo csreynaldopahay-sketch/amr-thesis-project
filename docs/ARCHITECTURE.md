@@ -1220,11 +1220,11 @@ This section details how the architecture addresses non-functional requirements 
 | **Audit Trail** | Cleaning report documents all transformation decisions | `cleaning_report.txt` |
 
 **Reproducibility Checklist:**
-- [ ] Random states fixed and reported
-- [ ] Data transformations documented
-- [ ] Coverage thresholds explicitly stated
-- [ ] Model hyperparameters logged
-- [ ] Output files versioned
+- [x] Random states fixed and reported
+- [x] Data transformations documented
+- [x] Coverage thresholds explicitly stated
+- [x] Model hyperparameters logged
+- [x] Output files versioned
 
 ### 12.3 Scalability (Conceptual)
 
@@ -1237,7 +1237,7 @@ While the system is designed for workstation-level deployment, the architecture 
 | **Storage** | File-based CSV/joblib; efficient for thesis scale | Database integration possible (SQLite, PostgreSQL) |
 | **User Concurrency** | Single-user Streamlit dashboard | Multi-user deployment via Streamlit Cloud or containerization |
 
-**Note**: Enterprise-scale scalability is out of scope for this thesis-level project.
+> **Note:** Enterprise-scale scalability is out of scope for this thesis-level project.
 
 ### 12.4 Ethical and Security Considerations
 
