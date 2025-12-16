@@ -10,6 +10,36 @@ This document provides comprehensive technical documentation for the AMR Pattern
 
 ---
 
+## Documentation Structure
+
+### Methods Documentation
+
+| Document | Description |
+|----------|-------------|
+| [methods/preprocessing.md](methods/preprocessing.md) | Preprocessing decision log with justifications |
+| [methods/clustering.md](methods/clustering.md) | Clustering parameter transparency and metadata handling |
+| [methods/supervised_models.md](methods/supervised_models.md) | Supervised learning terminology enforcement |
+| [methods/multivariate_analysis.md](methods/multivariate_analysis.md) | PCA and statistical testing methods |
+| [methods/integration.md](methods/integration.md) | Integration and synthesis methods |
+| [methods/deployment.md](methods/deployment.md) | Dashboard deployment and reproducibility |
+
+### Results Documentation
+
+| Document | Description |
+|----------|-------------|
+| [results/phase2_clusters.md](results/phase2_clusters.md) | Preprocessing and data preparation results |
+| [results/phase3_discrimination.md](results/phase3_discrimination.md) | Clustering and supervised discrimination results |
+| [results/phase4_environment.md](results/phase4_environment.md) | Regional and environmental analysis results |
+| [results/phase5_synthesis.md](results/phase5_synthesis.md) | Integration and synthesis results |
+
+### Limitations
+
+| Document | Description |
+|----------|-------------|
+| [limitations.md](limitations.md) | Explicit study limitations and scope boundaries |
+
+---
+
 ## Table of Contents
 
 1. [Preprocessing Decisions](#1-preprocessing-decisions)

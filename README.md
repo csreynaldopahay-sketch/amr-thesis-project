@@ -19,6 +19,27 @@ This project implements a comprehensive data science pipeline for AMR surveillan
 > **📋 For comprehensive methodology documentation, see [docs/METHODOLOGY.md](docs/METHODOLOGY.md)**
 >
 > **🏗️ For system architecture and design documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+>
+> **⚠️ For explicit study limitations and scope boundaries, see [docs/limitations.md](docs/limitations.md)**
+
+### Phase 8 Documentation Structure
+
+```
+docs/
+├── methods/                    # Method-specific documentation
+│   ├── preprocessing.md        # Preprocessing decision log
+│   ├── clustering.md           # Clustering parameter transparency
+│   ├── supervised_models.md    # Supervised learning terminology
+│   ├── multivariate_analysis.md # PCA and statistical methods
+│   ├── integration.md          # Integration methods
+│   └── deployment.md           # Dashboard and reproducibility
+├── results/                    # Results templates
+│   ├── phase2_clusters.md      # Preprocessing results
+│   ├── phase3_discrimination.md # Clustering/supervised results
+│   ├── phase4_environment.md   # Regional/environmental results
+│   └── phase5_synthesis.md     # Integration/synthesis results
+└── limitations.md              # Explicit limitations
+```
 
 ## Isolate Code Convention
 
