@@ -142,29 +142,58 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
             print(f"  Top resistant antibiotics: {', '.join(info['top_resistant_antibiotics'][:3])}")
     
     # ==============================================
-    # PHASE 4: Supervised Learning
+    # PHASE 4: Supervised Learning (Phase 3 Improvements)
     # =============================================
     
     print("\n")
+    print("=" * 70)
+    print("PHASE 4: Supervised Learning (with Phase 3 Improvements)")
+    print("  - Leakage-safe preprocessing")
+    print("  - Separate task pipelines (Species vs MDR)")
+    print("  - Rationalized model set")
+    print("  - Macro-averaged metrics")
+    print("=" * 70)
     
-    # MDR Discrimination
+    # Create models directory
+    models_dir = os.path.join(output_dir, '..', 'models')
+    os.makedirs(models_dir, exist_ok=True)
+    
+    # Task B: MDR Discrimination (Binary)
     mdr_results = None
     if 'MDR_CATEGORY' in df_clustered.columns:
         try:
             mdr_results = run_mdr_discrimination(df_clustered, feature_cols)
             
-            # Save model
-            models_dir = os.path.join(output_dir, '..', 'models')
-            os.makedirs(models_dir, exist_ok=True)
-            
+            # Save model with all preprocessors
             save_model(
                 mdr_results['best_model']['model_object'],
                 mdr_results['scaler'],
                 mdr_results['label_encoder'],
-                os.path.join(models_dir, 'mdr_classifier.joblib')
+                os.path.join(models_dir, 'mdr_classifier.joblib'),
+                imputer=mdr_results.get('imputer'),
+                preprocessing_info=mdr_results.get('preprocessing_info')
             )
         except Exception as e:
             print(f"Warning: MDR discrimination failed: {e}")
+    
+    # Task A: Species Discrimination (Multi-class)
+    species_results = None
+    if 'ISOLATE_ID' in df_clustered.columns and df_clustered['ISOLATE_ID'].nunique() > 1:
+        try:
+            from supervised.supervised_learning import run_species_discrimination
+            species_results = run_species_discrimination(df_clustered, feature_cols)
+            
+            # Save model with all preprocessors
+            save_model(
+                species_results['best_model']['model_object'],
+                species_results['scaler'],
+                species_results['label_encoder'],
+                os.path.join(models_dir, 'species_classifier.joblib'),
+                imputer=species_results.get('imputer'),
+                preprocessing_info=species_results.get('preprocessing_info')
+            )
+        except Exception as e:
+            print(f"Warning: Species discrimination failed: {e}")
     
     # =============================================
     # PHASE 5: Regional & Environmental Analysis
