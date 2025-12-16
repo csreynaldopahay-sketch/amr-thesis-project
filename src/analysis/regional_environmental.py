@@ -32,6 +32,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from scipy.stats import chi2_contingency
 
 
@@ -614,7 +615,7 @@ def perform_pca(df: pd.DataFrame,
 
 def create_scree_plot(pca_info: Dict,
                       figsize: Tuple[int, int] = (10, 6),
-                      save_path: str = None) -> plt.Figure:
+                      save_path: str = None) -> Figure:
     """
     Create scree plot showing variance explained by each principal component.
     
@@ -699,7 +700,7 @@ def create_pca_plot(X_pca: np.ndarray,
                     figsize: Tuple[int, int] = (10, 8),
                     save_path: str = None,
                     show_cluster_centroids: bool = False,
-                    cluster_col: str = 'CLUSTER') -> plt.Figure:
+                    cluster_col: str = 'CLUSTER') -> Figure:
     """
     Create PCA scatter plot with optional cluster centroids overlay.
     
@@ -808,7 +809,7 @@ def create_stacked_bar_plot(df: pd.DataFrame,
                             cluster_col: str = 'CLUSTER',
                             group_col: str = 'REGION',
                             figsize: Tuple[int, int] = (12, 7),
-                            save_path: str = None) -> plt.Figure:
+                            save_path: str = None) -> Figure:
     """
     Create stacked bar plot showing cluster composition by region or environment.
     
@@ -898,7 +899,7 @@ def create_pca_biplot(X_pca: np.ndarray,
                       df: pd.DataFrame = None,
                       color_col: str = 'CLUSTER',
                       figsize: Tuple[int, int] = (12, 10),
-                      save_path: str = None) -> plt.Figure:
+                      save_path: str = None) -> Figure:
     """
     Create PCA biplot with loadings.
     
