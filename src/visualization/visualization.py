@@ -230,13 +230,6 @@ def create_clustered_heatmap_with_dendrogram(df: pd.DataFrame,
     data_matrix = df[existing_cols].values
     display_cols = [c.replace('_encoded', '') for c in existing_cols]
     
-    # Determine layout based on options
-    n_sidebars = 0
-    if show_cluster_bars and 'CLUSTER' in df.columns:
-        n_sidebars += 1
-    if show_mdr and 'MDR_FLAG' in df.columns:
-        n_sidebars += 1
-    
     # Create figure with gridspec
     fig = plt.figure(figsize=figsize)
     
@@ -637,10 +630,20 @@ def generate_all_visualizations(df: pd.DataFrame,
     plt.close(fig)
     
     # 4. Cluster profiles with consistent labeling
-    # Import from parent directory (src)
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from clustering.hierarchical_clustering import get_cluster_profiles, create_cluster_summary_table, create_environmental_distribution_table
+    # Try relative import first, fall back to absolute import for different contexts
+    try:
+        from ..clustering.hierarchical_clustering import get_cluster_profiles, create_cluster_summary_table, create_environmental_distribution_table
+    except (ImportError, ValueError):
+        # Fall back for running as standalone or from different entry points
+        try:
+            from clustering.hierarchical_clustering import get_cluster_profiles, create_cluster_summary_table, create_environmental_distribution_table
+        except ImportError:
+            import sys
+            import os as os_module
+            src_path = os_module.path.dirname(os_module.path.dirname(os_module.path.abspath(__file__)))
+            if src_path not in sys.path:
+                sys.path.insert(0, src_path)
+            from clustering.hierarchical_clustering import get_cluster_profiles, create_cluster_summary_table, create_environmental_distribution_table
     
     print("\n4. Creating cluster profile heatmap (resistance phenotypes)...")
     cluster_profiles = get_cluster_profiles(df, feature_cols)

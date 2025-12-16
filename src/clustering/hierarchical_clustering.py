@@ -369,10 +369,7 @@ def perform_robustness_check(data: np.ndarray,
     robustness_linkage = linkage(data, method=robustness_method, metric=robustness_metric)
     robustness_labels = fcluster(robustness_linkage, n_clusters, criterion='maxclust')
     
-    # Calculate cluster overlap/agreement
-    from scipy.stats import contingency
-    
-    # Create contingency table
+    # Create contingency table using pandas crosstab
     contingency_table = pd.crosstab(
         pd.Series(primary_labels, name='Primary'),
         pd.Series(robustness_labels, name='Robustness')
