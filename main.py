@@ -196,7 +196,7 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
             print(f"Warning: Species discrimination failed: {e}")
     
     # =============================================
-    # PHASE 5: Regional & Environmental Analysis
+    # PHASE 4: Regional & Environmental Analysis (Phase 4 Improvements)
     # =============================================
     
     print("\n")
@@ -206,7 +206,7 @@ def run_full_pipeline(data_dir: str = None, output_dir: str = None):
     )
     
     # =============================================
-    # PHASE 6: Integration & Synthesis
+    # PHASE 5: Integration & Synthesis
     # =============================================
     
     # Run comprehensive integration and synthesis analysis
