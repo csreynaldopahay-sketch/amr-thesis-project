@@ -481,58 +481,75 @@ For each cluster, the following are computed:
 
 ### 5.1 Objective (Phase 4.1)
 
-Evaluate how well resistance fingerprints discriminate known categories:
-- Bacterial species classification
-- MDR vs. Non-MDR discrimination
+Evaluate how well resistance fingerprints discriminate known categories through **two independent tasks**:
+
+| Task | Input | Target | Type |
+|------|-------|--------|------|
+| **Task A: Species discrimination** | Resistance fingerprints | Species | Multi-class |
+| **Task B: MDR discrimination** | Resistance fingerprints | MDR flag | Binary |
 
 > **Important**: This is **pattern discrimination**, NOT forecasting or prediction of future outcomes. The metrics quantify how consistently resistance patterns align with known categories.
 
-### 5.2 Data Splitting (Phase 4.2)
+> **MDR Target Transparency**: The MDR label is derived from the SAME AST features used as input. MDR discrimination is treated as **self-consistency discrimination** - evaluating how consistently resistance fingerprints align with MDR status. This explicitly acknowledges the "predicted MDR from MDR" relationship.
 
-#### 5.2.1 Train-Test Split
+### 5.2 Data Splitting (Phase 4.2) - LEAKAGE-SAFE
+
+#### 5.2.1 Train-Test Split Discipline
+
+**CRITICAL**: Train-test split is performed **BEFORE** any preprocessing to prevent data leakage.
 
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
 | Training Set | 80% | Sufficient data for model learning |
 | Test Set | 20% | Independent evaluation of pattern consistency |
 | Stratification | By target variable | Preserves class distribution in both sets |
-| Random State | 42 | Reproducibility |
+| Random State | 42 (fixed and reported) | Reproducibility |
 
-#### 5.2.2 Purpose of Splitting
+#### 5.2.2 Leakage-Safe Preprocessing Order
 
-- Assess model generalization without overfitting
-- Support robustness of pattern discrimination
-- Framed as **model validation**, not prediction
+1. **Split FIRST**: 80/20 train-test split (stratified)
+2. **Imputation**: Median strategy fit on TRAIN only, applied to both
+3. **Scaling**: StandardScaler fit on TRAIN only, applied to both
 
-#### 5.2.3 Class Filtering
+This prevents information from the test set from influencing preprocessing.
 
-Classes with fewer than 2 samples are removed to enable stratified splitting.
+#### 5.2.3 Strict Feature-Label Separation
 
-### 5.3 Model Selection (Phase 4.3)
+- **Input matrix**: Resistance fingerprints ONLY (`{AB}_encoded` columns)
+- **Excluded**: All metadata (region, site, environment, sample source)
+- **Rationale**: Prevents silent contextual leakage
 
-Six classification algorithms are evaluated:
+### 5.3 Model Selection (Phase 4.3) - RATIONALIZED SET
 
-| Model | Key Hyperparameters | Strengths |
-|-------|---------------------|-----------|
-| **Random Forest** | n_estimators=100, random_state=42 | Handles non-linear relationships, feature importance |
-| **Support Vector Machine** | kernel='rbf', random_state=42 | Effective in high-dimensional spaces |
-| **k-Nearest Neighbors** | n_neighbors=5 | Instance-based, captures local patterns |
-| **Logistic Regression** | max_iter=1000, random_state=42 | Interpretable, linear boundaries |
-| **Decision Tree** | random_state=42 | Interpretable, handles mixed data |
-| **Naive Bayes** | Gaussian | Fast, handles missing data well |
+**Reduced to 3-4 models** with clear methodological justification:
+
+| Model | Category | Key Hyperparameters | Purpose |
+|-------|----------|---------------------|---------|
+| **Logistic Regression** | Linear | max_iter=1000, random_state=42 | Linear baseline with coefficient interpretation |
+| **Random Forest** | Tree-based | n_estimators=100, random_state=42 | Nonlinear model with Gini feature importance |
+| **k-Nearest Neighbors** | Distance-based | n_neighbors=5 | Distance-based consistency check |
+
+#### Model Category Descriptions
+
+| Category | Description |
+|----------|-------------|
+| **Linear** | Models that learn linear decision boundaries. Interpretable through coefficient magnitudes. |
+| **Tree-based** | Models that partition feature space using decision rules. Provide Gini-based importance. |
+| **Distance-based** | Models that classify based on similarity to training instances. No parameters to interpret. |
 
 ### 5.4 Model Training (Phase 4.4)
 
-#### 5.4.1 Feature Preprocessing
+#### 5.4.1 Feature Preprocessing (Applied AFTER Split)
 
-1. **Missing Value Imputation**: Median strategy applied to feature matrix
+1. **Missing Value Imputation**: Median strategy (fit on train only)
 2. **Label Encoding**: Target variables encoded numerically
-3. **Feature Scaling**: StandardScaler normalization (mean=0, std=1)
+3. **Feature Scaling**: StandardScaler normalization (fit on train only)
 
 #### 5.4.2 Input Features
 
-- **Features**: Encoded resistance fingerprints (`{AB}_encoded` columns)
+- **Features**: Encoded resistance fingerprints (`{AB}_encoded` columns) ONLY
 - **Targets**: Known labels (species identity or MDR category)
+- **Excluded**: Metadata columns (no region, site, environment enters the model)
 
 ### 5.5 Model Evaluation (Phase 4.5)
 
@@ -541,41 +558,87 @@ Six classification algorithms are evaluated:
 | Metric | Formula | Interpretation |
 |--------|---------|----------------|
 | **Accuracy** | (TP + TN) / Total | Overall correct classifications |
-| **Precision** | TP / (TP + FP) | How many predicted positives are correct |
-| **Recall** | TP / (TP + FN) | How many actual positives are identified |
-| **F1-Score** | 2 × (P × R) / (P + R) | Harmonic mean of precision and recall |
-| **Confusion Matrix** | Cross-tabulation | Detailed view of classification performance |
+| **Precision (Macro)** | Mean of per-class precision | Treats all classes equally |
+| **Recall (Macro)** | Mean of per-class recall | Treats all classes equally |
+| **F1-Score (Macro)** | Harmonic mean of macro P and R | Primary comparison metric |
+| **Confusion Matrix** | Cross-tabulation per task | Detailed view per class |
 
-#### 5.5.2 Averaging Method
+#### 5.5.2 Averaging Method - MACRO
 
-**Weighted average** is used to account for class imbalance:
+**Macro averaging** is used to prevent class imbalance bias:
 ```
-Weighted_Metric = Σ(class_weight × class_metric) / Σ(class_weight)
+Macro_Metric = (1/n_classes) × Σ(class_metric)
 ```
 
-#### 5.5.3 Interpretation Framework
+All classes are treated equally regardless of sample size.
 
-> "These metrics quantify how consistently resistance patterns align with known categories, NOT predictive performance for future samples."
+#### 5.5.3 Interpretation Language Discipline
+
+| Avoid | Use Instead |
+|-------|-------------|
+| "Model performs well" | "Model shows consistent alignment" |
+| "Predicts accurately" | "Demonstrates discriminative capacity" |
+| "High predictive accuracy" | "Strong pattern consistency" |
 
 ### 5.6 Feature Importance Analysis (Phase 4.6)
 
 #### 5.6.1 Objective
 
-Identify antibiotics contributing most to group separation.
+Identify antibiotics showing **associative importance** for group separation.
 
 #### 5.6.2 Importance Extraction Methods
 
-| Model Type | Importance Method |
-|------------|-------------------|
-| Tree-based (RF, DT) | `feature_importances_` attribute |
-| Linear (LR, SVM) | Absolute coefficient values |
+| Model | Importance Method |
+|-------|-------------------|
+| **Random Forest** | Gini importance (mean decrease in impurity) |
+| **Logistic Regression** | Absolute coefficient magnitude |
+| **k-NN** | No native feature importance available |
 
-#### 5.6.3 Biological Plausibility Assessment
+#### 5.6.3 Antibiotic-Level Summary Table
 
-Feature importance findings are related to:
-- **AST Results**: Which antibiotics are most discriminative
-- **MDR Trends**: Connection to multi-drug resistance patterns
-- **Biological Context**: Interpretation within clinical relevance
+| Column | Description |
+|--------|-------------|
+| Antibiotic | Antibiotic name |
+| Importance Score | Numerical importance value |
+| Task | Species or MDR |
+| Interpretation | Biological context (e.g., "Common MDR marker") |
+
+#### 5.6.4 Biological Restraint
+
+- **Interpret as**: "Associative importance" - the antibiotic helps discriminate groups
+- **Avoid**: Causal or mechanistic claims
+- **Rationale**: High importance does NOT imply the antibiotic causes group membership
+
+### 5.7 Robustness Checks
+
+#### 5.7.1 Model Agreement Check
+
+Compare top-ranked antibiotics across different models:
+- Identifies overlapping important features
+- Strengthens confidence in patterns when models agree
+
+#### 5.7.2 Stability Across Random Seeds
+
+- Re-run split with different seeds
+- Report consistency qualitatively
+- Shows robustness without heavy computation
+
+### 5.8 Task Separation
+
+#### 5.8.1 Separate Pipelines
+
+Each task runs as an **independent experiment**:
+- Separate train-test splits
+- Separate preprocessing
+- Separate model training
+- Separate evaluation
+
+#### 5.8.2 Separate Results Sections
+
+For each task, report separately:
+- Confusion matrices
+- Metric tables
+- Feature importance analyses
 
 ---
 
