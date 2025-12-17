@@ -37,6 +37,91 @@ from scipy.stats import chi2_contingency
 
 
 # =============================================================================
+# MULTIPLE COMPARISONS CORRECTION UTILITIES (Task 9)
+# Reference: Benjamini Y, Hochberg Y. (1995). Controlling the false discovery 
+#            rate: a practical and powerful approach to multiple testing.
+#            J R Stat Soc Series B Stat Methodol. 57(1):289-300.
+# =============================================================================
+
+def apply_multiple_comparisons_correction(p_values: List[float], 
+                                          method: str = 'fdr_bh',
+                                          alpha: float = 0.05) -> Dict:
+    """
+    Apply multiple comparisons correction to a list of p-values.
+    
+    Methods available:
+    - 'bonferroni': Conservative Bonferroni correction (α / n)
+    - 'fdr_bh': Benjamini-Hochberg False Discovery Rate (less conservative)
+    
+    Parameters:
+    -----------
+    p_values : list of float
+        Raw p-values from statistical tests
+    method : str
+        Correction method ('bonferroni' or 'fdr_bh')
+    alpha : float
+        Family-wise error rate (default: 0.05)
+    
+    Returns:
+    --------
+    dict
+        Correction results including adjusted p-values and significance
+    """
+    n_tests = len(p_values)
+    p_values = np.array(p_values)
+    
+    if method == 'bonferroni':
+        # Bonferroni correction: multiply p-values by n (or equivalently, divide alpha)
+        adjusted_pvals = np.minimum(p_values * n_tests, 1.0)
+        corrected_alpha = alpha / n_tests
+        method_name = "Bonferroni"
+        
+    elif method == 'fdr_bh':
+        # Benjamini-Hochberg False Discovery Rate correction
+        # 1. Sort p-values
+        sorted_indices = np.argsort(p_values)
+        sorted_pvals = p_values[sorted_indices]
+        
+        # 2. Calculate critical values
+        ranks = np.arange(1, n_tests + 1)
+        critical_values = (ranks / n_tests) * alpha
+        
+        # 3. Find largest p-value that is <= its critical value
+        significant_mask = sorted_pvals <= critical_values
+        
+        # 4. Calculate adjusted p-values
+        adjusted_pvals = np.minimum(sorted_pvals * n_tests / ranks, 1.0)
+        
+        # 5. Make monotone (each adjusted p-value >= previous)
+        for i in range(n_tests - 2, -1, -1):
+            adjusted_pvals[i] = min(adjusted_pvals[i], adjusted_pvals[i + 1])
+        
+        # 6. Unsort to original order
+        unsort_indices = np.argsort(sorted_indices)
+        adjusted_pvals = adjusted_pvals[unsort_indices]
+        
+        corrected_alpha = alpha  # FDR controls expected proportion, not family-wise
+        method_name = "Benjamini-Hochberg FDR"
+    
+    else:
+        raise ValueError(f"Unknown correction method: {method}")
+    
+    # Determine significance
+    significant = adjusted_pvals < alpha
+    
+    return {
+        'raw_p_values': p_values.tolist(),
+        'adjusted_p_values': adjusted_pvals.tolist(),
+        'significant': significant.tolist(),
+        'n_significant': int(np.sum(significant)),
+        'n_tests': n_tests,
+        'method': method_name,
+        'alpha': alpha,
+        'corrected_alpha': corrected_alpha if method == 'bonferroni' else None
+    }
+
+
+# =============================================================================
 # ONE HEALTH INTERPRETATION DISCIPLINE CONSTANTS
 # =============================================================================
 
@@ -496,6 +581,45 @@ def analyze_cluster_distribution(df: pd.DataFrame,
             print(f"   χ² = {chi_result['chi_square']:.4f}")
             print(f"   p-value = {chi_result['p_value']:.6f}")
             print(f"   Cramér's V = {chi_result['cramers_v']:.4f} ({chi_result['effect_interpretation']})")
+    
+    # 4. Apply Multiple Comparisons Correction (Task 9)
+    chi_square_results = analysis.get('chi_square_tests', {})
+    if len(chi_square_results) > 1:
+        print("\n5. Multiple Comparisons Correction (Benjamini-Hochberg FDR):")
+        print("-" * 50)
+        
+        # Collect raw p-values
+        test_names = list(chi_square_results.keys())
+        raw_p_values = [chi_square_results[name]['p_value'] for name in test_names 
+                       if 'error' not in chi_square_results[name]]
+        test_names_valid = [name for name in test_names 
+                          if 'error' not in chi_square_results[name]]
+        
+        if raw_p_values:
+            # Apply correction
+            correction_result = apply_multiple_comparisons_correction(
+                raw_p_values, method='fdr_bh', alpha=0.05
+            )
+            analysis['multiple_comparisons_correction'] = correction_result
+            
+            print(f"   Number of tests: {correction_result['n_tests']}")
+            print(f"   Method: {correction_result['method']}")
+            print(f"   \n   Corrected p-values:")
+            for i, (name, raw_p, adj_p, sig) in enumerate(zip(
+                test_names_valid, 
+                correction_result['raw_p_values'],
+                correction_result['adjusted_p_values'],
+                correction_result['significant']
+            )):
+                sig_marker = "**" if sig else ""
+                print(f"   {name.capitalize()}: raw p={raw_p:.2e} → adjusted p={adj_p:.2e} {sig_marker}")
+            
+            # Update chi_square_tests with adjusted p-values
+            for i, name in enumerate(test_names_valid):
+                analysis['chi_square_tests'][name]['p_value_adjusted'] = correction_result['adjusted_p_values'][i]
+                analysis['chi_square_tests'][name]['significant_after_correction'] = correction_result['significant'][i]
+            
+            print(f"\n   Significant after correction: {correction_result['n_significant']} / {correction_result['n_tests']}")
     
     return analysis
 
@@ -1246,10 +1370,12 @@ def run_regional_environmental_analysis(df: pd.DataFrame,
                         'Test': f'Cluster vs {test_name.capitalize()}',
                         'Chi-Square': result.get('chi_square', 'N/A'),
                         'p-value': result.get('p_value', 'N/A'),
+                        'p-value_adjusted': result.get('p_value_adjusted', 'N/A'),
                         'Degrees of Freedom': result.get('degrees_of_freedom', 'N/A'),
                         'Cramers V': result.get('cramers_v', 'N/A'),
                         'Effect Size': result.get('effect_interpretation', 'N/A'),
-                        'Significant': result.get('significant', 'N/A')
+                        'Significant': result.get('significant', 'N/A'),
+                        'Significant_after_correction': result.get('significant_after_correction', 'N/A')
                     })
             
             if chi_summary:
@@ -1258,6 +1384,22 @@ def run_regional_environmental_analysis(df: pd.DataFrame,
                 chi_df.to_csv(chi_path, index=False)
                 results['tables']['chi_square_results'] = chi_path
                 print(f"   Saved: {chi_path}")
+        
+        # Save multiple comparisons correction details if available
+        if 'multiple_comparisons_correction' in cluster_dist:
+            mcc = cluster_dist['multiple_comparisons_correction']
+            mcc_path = os.path.join(output_dir, 'multiple_comparisons_correction.csv')
+            mcc_df = pd.DataFrame({
+                'Method': [mcc['method']] * mcc['n_tests'],
+                'Alpha': [mcc['alpha']] * mcc['n_tests'],
+                'Test_Index': list(range(1, mcc['n_tests'] + 1)),
+                'Raw_p_value': mcc['raw_p_values'],
+                'Adjusted_p_value': mcc['adjusted_p_values'],
+                'Significant': mcc['significant']
+            })
+            mcc_df.to_csv(mcc_path, index=False)
+            results['tables']['multiple_comparisons'] = mcc_path
+            print(f"   Saved: {mcc_path}")
         
         plt.close('all')
         
