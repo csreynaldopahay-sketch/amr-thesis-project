@@ -84,8 +84,21 @@ def parse_isolate_code(code: str) -> Dict[str, str]:
     if not code or not isinstance(code, str):
         return metadata
     
-    # Remove prefix like EC_, VC_, SAL if present
-    code_clean = re.sub(r'^[A-Z]+_', '', code.strip())
+    # Remove prefix like EC_, VC_, SAL_, SAL, etc. if present
+    # Known species prefixes (with or without underscore)
+    known_prefixes = ['EC', 'VC', 'SAL', 'SG', 'KP', 'PA', 'AB']  # E. coli, V. cholerae, Salmonella, etc.
+    code_clean = code.strip().upper()  # Normalize to uppercase for consistent processing
+    
+    # First try to remove prefix with underscore (e.g., EC_, VC_, SAL_)
+    prefix_with_underscore = re.match(r'^([A-Z]+)_', code_clean)
+    if prefix_with_underscore:
+        code_clean = re.sub(r'^[A-Z]+_', '', code_clean)
+    else:
+        # Try to remove known prefixes without underscore (e.g., SALOL... -> OL...)
+        for prefix in sorted(known_prefixes, key=len, reverse=True):  # Try longer prefixes first
+            if code_clean.startswith(prefix):
+                code_clean = code_clean[len(prefix):]
+                break
     
     # National site mapping
     national_site_map = {
@@ -94,15 +107,23 @@ def parse_isolate_code(code: str) -> Dict[str, str]:
         'M': 'Marawi'
     }
     
-    # Local site mapping (second letter)
-    local_site_map = {
-        'A': 'Alegria',
-        'L': 'Larrazabal',
-        'G': 'Gabriel',
-        'R': 'Roque',
-        'D': 'Dayawan',
-        'T': 'Tuca Kialdan',
-        'P': 'APMC'
+    # Local site mapping (second letter) - depends on national site
+    # Different regions use the same letter codes for different local sites
+    local_site_map_by_national = {
+        'M': {  # Marawi (BARMM)
+            'A': 'APMC',
+            'D': 'Dayawan',
+            'R': 'Gadongan',
+            'K': 'Tuca Kialdan'
+        },
+        'O': {  # Ormoc (Region VIII - Eastern Visayas)
+            'A': 'Alegria',
+            'L': 'Larrazabal'
+        },
+        'P': {  # Pampanga (Region III - Central Luzon)
+            'G': 'Gabriel',
+            'R': 'Roque'
+        }
     }
     
     # Sample source mapping
@@ -119,13 +140,16 @@ def parse_isolate_code(code: str) -> Dict[str, str]:
     }
     
     # Parse national site (first character)
+    national_char = None
     if len(code_clean) > 0:
         national_char = code_clean[0].upper()
         metadata['national_site'] = national_site_map.get(national_char, national_char)
     
-    # Parse local site (second character)
+    # Parse local site (second character) - using national site context
     if len(code_clean) > 1:
         local_char = code_clean[1].upper()
+        # Get the local site map for this national site
+        local_site_map = local_site_map_by_national.get(national_char, {})
         metadata['local_site'] = local_site_map.get(local_char, local_char)
     
     # Parse sample source (two letters after local site, before replicate R or colony C)
