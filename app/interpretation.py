@@ -122,15 +122,36 @@ def get_methodology_content() -> dict:
         2. Standardization (StandardScaler)
         3. PCA transformation to 2 components
         
-        **Interpretation:**
-        - PC1 and PC2 capture the most variance in resistance patterns
-        - Component loadings indicate which antibiotics contribute most
-        - Clustering in PCA space reflects resistance profile similarity
+        **Explained Variance Reporting:**
+        
+        PCA plots include the explained variance ratio in axis labels and titles:
+        - **PC1**: Percentage of total variance explained by the first component
+        - **PC2**: Percentage of total variance explained by the second component
+        - **Cumulative**: Total variance captured by PC1+PC2 combined
+        
+        **Interpretation Guidelines:**
+        
+        | Cumulative Variance | Interpretation |
+        |---------------------|----------------|
+        | ≥60% | 2D projection provides representative view; patterns well-supported |
+        | 50-60% | Moderate variance captured; interpret patterns cautiously |
+        | <50% | **Limitation**: 2D projection shows simplified view; acknowledge in reporting |
+        
+        **When cumulative variance < 50%:**
+        - The 2D plots represent only a partial view of resistance structure
+        - Full resistance space is multi-dimensional (23+ antibiotics)
+        - Apparent clusters or separations may not fully represent underlying structure
+        - This should be acknowledged as a limitation in any publications
+        
+        **Component Loadings:**
+        - Loadings indicate which antibiotics contribute most to each PC
+        - High absolute loadings (|loading| > 0.3) suggest strong contribution
+        - Similar loading patterns suggest correlated resistance
         
         **Limitations:**
-        - Only 2 components shown (may lose information)
-        - Linear transformation only
-        - Should not be over-interpreted
+        - Only 2 components shown (may lose significant information)
+        - Linear transformation only (nonlinear patterns not captured)
+        - Should not be over-interpreted, especially if cumulative variance is low
         """
     }
 

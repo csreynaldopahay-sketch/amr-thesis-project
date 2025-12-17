@@ -104,6 +104,11 @@ This document provides a structured template for documenting Phase 5 (regional a
 
 **Total variance explained (PC1+PC2)**: [%]
 
+> **Interpretation Guide:**
+> - **If cumulative variance ≥ 60%**: The 2D projection provides a representative view of resistance structure. Interpretation of visual patterns is well-supported.
+> - **If cumulative variance 50-60%**: The 2D projection captures moderate variance. Interpret patterns cautiously; some information is lost.
+> - **If cumulative variance < 50%**: The 2D projection represents a simplified view. Full resistance space is multi-dimensional; these projections emphasize only the two dominant axes of variation. **Acknowledge this as a limitation in reporting.**
+
 ### 3.2 Component Loadings (Top Antibiotics)
 
 #### PC1 Loadings
@@ -166,15 +171,15 @@ This document provides a structured template for documenting Phase 5 (regional a
 
 ### Figure 5.1: PCA Scatter Plot by Cluster
 
-> "Principal Component Analysis of resistance profiles (n=[N] isolates, [M] antibiotics). PC1 ([%] variance) and PC2 ([%] variance) capture variation primarily in [interpretation]. Points colored by cluster assignment; cluster overlap indicates shared resistance pattern features."
+> "Principal Component Analysis of resistance profiles (n=[N] isolates, [M] antibiotics). **PC1 explains [X]% and PC2 explains [Y]% of total variance ([X+Y]% cumulative)**. Points colored by cluster assignment; cluster overlap indicates shared resistance pattern features. [If cumulative <50%: Note that the 2D projection captures less than 50% of total variance; patterns should be interpreted with caution.]"
 
 ### Figure 5.2: PCA Scatter Plot by Region
 
-> "PCA visualization with regional coloring (n=[N] isolates). Separation patterns reflect regional variation in resistance profiles. Regional associations are observational and do not imply causation."
+> "PCA visualization with regional coloring (n=[N] isolates). **PC1 and PC2 explain [X]% and [Y]% of total variance respectively ([X+Y]% cumulative)**. Separation patterns reflect regional variation in resistance profiles. Regional associations are observational and do not imply causation."
 
 ### Figure 5.3: PCA Biplot
 
-> "PCA biplot showing isolate distribution and antibiotic loadings. Arrows indicate antibiotic contributions to principal components; longer arrows indicate stronger contributions. Antibiotics pointing in similar directions show correlated resistance patterns."
+> "PCA biplot showing isolate distribution and antibiotic loadings. **PC1+PC2 explain [X+Y]% of total variance**. Arrows indicate antibiotic contributions to principal components; longer arrows indicate stronger contributions. Antibiotics pointing in similar directions show correlated resistance patterns."
 
 ### Figure 5.4: Regional Distribution Bar Chart
 
@@ -184,11 +189,19 @@ This document provides a structured template for documenting Phase 5 (regional a
 
 > "Distribution of isolates across clusters by environmental category. Enrichment values indicate fold-difference from overall dataset proportions."
 
+### Figure 5.6: Scree Plot
+
+> "Scree plot showing variance explained by principal components. **PC1: [X]%, PC2: [Y]% (cumulative: [X+Y]%)**. The red line shows cumulative variance; the 80% threshold indicates the number of components needed to capture most variance. [If PC1+PC2 <50%: The low cumulative variance for PC1+PC2 indicates that resistance patterns are distributed across multiple dimensions, and 2D visualizations should be interpreted with caution.]"
+
 ---
 
 ## Interpretation Notes
 
 > **Scope**: Regional and environmental associations are **observational** and reflect patterns in the analyzed dataset. Results do not establish causation between geographic/environmental factors and resistance profiles. Temporal and confounding factors were not controlled.
+
+### PCA Variance Interpretation
+
+> **Important**: When cumulative variance explained by PC1+PC2 is less than 50%, this should be acknowledged as a limitation. The 2D plots represent simplified views of a higher-dimensional resistance space. While still useful for visualization, patterns observed may not fully represent the underlying data structure.
 
 ---
 
@@ -197,6 +210,7 @@ This document provides a structured template for documenting Phase 5 (regional a
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2024 | Initial results template |
+| 1.1 | 2024 | Added PCA explained variance reporting and interpretation guidelines |
 
 ---
 
