@@ -684,7 +684,8 @@ def create_scree_plot(pca_info: Dict,
     
     # Build title with detailed variance reporting
     title_line1 = 'Scree Plot: Variance Explained by Principal Components'
-    title_line2 = f'PC1: {variance_ratio[0]:.1f}%, PC2: {variance_ratio[1]:.1f}% (Cumulative: {pc1_pc2_cumulative:.1f}%)'
+    pc2_var = variance_ratio[1] if len(variance_ratio) > 1 else 0
+    title_line2 = f'PC1: {variance_ratio[0]:.1f}%, PC2: {pc2_var:.1f}% (Cumulative: {pc1_pc2_cumulative:.1f}%)'
     
     # Add interpretation note based on cumulative variance
     if pc1_pc2_cumulative < 50:
