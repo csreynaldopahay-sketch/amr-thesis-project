@@ -675,9 +675,24 @@ def create_scree_plot(pca_info: Dict,
     ax2.axhline(y=80, color='gray', linestyle='--', alpha=0.7)
     ax2.text(max_display * 0.85, 82, '80% threshold', fontsize=9, color='gray')
     
-    # Title and legend
-    plt.title('Scree Plot: Variance Explained by Principal Components\n'
-              '(PCA performed on resistance fingerprints only)', fontsize=12, fontweight='bold')
+    # Add 50% threshold line for interpretation warning
+    ax2.axhline(y=50, color='orange', linestyle=':', alpha=0.7)
+    ax2.text(max_display * 0.85, 52, '50% threshold', fontsize=9, color='orange')
+    
+    # Get PC1+PC2 cumulative variance for title
+    pc1_pc2_cumulative = cumulative_variance[1] if len(cumulative_variance) > 1 else cumulative_variance[0]
+    
+    # Build title with detailed variance reporting
+    title_line1 = 'Scree Plot: Variance Explained by Principal Components'
+    title_line2 = f'PC1: {variance_ratio[0]:.1f}%, PC2: {variance_ratio[1]:.1f}% (Cumulative: {pc1_pc2_cumulative:.1f}%)'
+    
+    # Add interpretation note based on cumulative variance
+    if pc1_pc2_cumulative < 50:
+        title_line3 = 'Note: PC1+PC2 < 50% - 2D plots should be interpreted with caution'
+    else:
+        title_line3 = '(PCA performed on resistance fingerprints only)'
+    
+    plt.title(f'{title_line1}\n{title_line2}\n{title_line3}', fontsize=11, fontweight='bold')
     
     # Combine legends
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -781,17 +796,33 @@ def create_pca_plot(X_pca: np.ndarray,
     # Axis labels with variance explained
     if pca_info:
         var_ratio = pca_info['explained_variance_ratio']
-        ax.set_xlabel(f'PC1 ({var_ratio[0]*100:.1f}% variance)', fontsize=11)
-        ax.set_ylabel(f'PC2 ({var_ratio[1]*100:.1f}% variance)', fontsize=11)
+        pc1_var = var_ratio[0] * 100
+        pc2_var = var_ratio[1] * 100 if len(var_ratio) > 1 else 0
+        cumulative_var = pc1_var + pc2_var
+        ax.set_xlabel(f'PC1 ({pc1_var:.1f}% variance)', fontsize=11)
+        ax.set_ylabel(f'PC2 ({pc2_var:.1f}% variance)', fontsize=11)
     else:
         ax.set_xlabel('PC1', fontsize=11)
         ax.set_ylabel('PC2', fontsize=11)
+        cumulative_var = None
     
-    # Title with methodology note
+    # Title with methodology note and cumulative variance
     centroid_note = " (★ = cluster centroids)" if show_cluster_centroids else ""
-    ax.set_title(f'PCA of Resistance Profiles (colored by {color_col}){centroid_note}\n'
-                 'NOTE: PCA is UNSUPERVISED - labels used only for visualization',
-                 fontsize=11)
+    
+    # Build title with explained variance information
+    if pca_info:
+        variance_note = f"PC1+PC2: {cumulative_var:.1f}% cumulative variance"
+        # Add limitation warning if cumulative variance < 50%
+        if cumulative_var < 50:
+            variance_note += " (interpret with caution: <50%)"
+        title_line1 = f'PCA of Resistance Profiles (colored by {color_col}){centroid_note}'
+        title_line2 = f'{variance_note}'
+        title_line3 = 'NOTE: PCA is UNSUPERVISED - labels used only for visualization'
+        ax.set_title(f'{title_line1}\n{title_line2}\n{title_line3}', fontsize=10)
+    else:
+        ax.set_title(f'PCA of Resistance Profiles (colored by {color_col}){centroid_note}\n'
+                     'NOTE: PCA is UNSUPERVISED - labels used only for visualization',
+                     fontsize=11)
     
     ax.axhline(y=0, color='gray', linestyle='--', alpha=0.4)
     ax.axvline(x=0, color='gray', linestyle='--', alpha=0.4)
@@ -957,9 +988,21 @@ def create_pca_biplot(X_pca: np.ndarray,
                pca.components_[1, i] * scale_factor,
                name, color='red', fontsize=8)
     
-    ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)')
-    ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)')
-    ax.set_title('PCA Biplot: Resistance Profiles and Antibiotic Loadings')
+    # Calculate cumulative variance for title
+    pc1_var = pca.explained_variance_ratio_[0] * 100
+    pc2_var = pca.explained_variance_ratio_[1] * 100 if len(pca.explained_variance_ratio_) > 1 else 0
+    cumulative_var = pc1_var + pc2_var
+    
+    ax.set_xlabel(f'PC1 ({pc1_var:.1f}% variance)')
+    ax.set_ylabel(f'PC2 ({pc2_var:.1f}% variance)')
+    
+    # Title with cumulative variance and interpretation note
+    title_line1 = 'PCA Biplot: Resistance Profiles and Antibiotic Loadings'
+    title_line2 = f'PC1+PC2 explain {cumulative_var:.1f}% of total variance'
+    if cumulative_var < 50:
+        title_line2 += ' (interpret with caution: <50%)'
+    ax.set_title(f'{title_line1}\n{title_line2}', fontsize=11)
+    
     ax.axhline(y=0, color='gray', linestyle='--', alpha=0.3)
     ax.axvline(x=0, color='gray', linestyle='--', alpha=0.3)
     
@@ -1114,6 +1157,32 @@ def run_regional_environmental_analysis(df: pd.DataFrame,
         fig = create_scree_plot(pca_info, save_path=scree_path)
         results['figures']['scree_plot'] = scree_path
         plt.close(fig)
+        
+        # -----------------------------------------------------------------
+        # 3.3.1 Save PCA variance explained to CSV (Task 4 requirement)
+        # -----------------------------------------------------------------
+        print("\n   Saving PCA variance explained...")
+        n_components_report = min(10, len(pca_info['explained_variance_ratio']))
+        variance_data = {
+            'Component': [f'PC{i+1}' for i in range(n_components_report)],
+            'Variance_Explained_%': [v * 100 for v in pca_info['explained_variance_ratio'][:n_components_report]],
+            'Cumulative_%': [v * 100 for v in pca_info['cumulative_variance'][:n_components_report]]
+        }
+        variance_df = pd.DataFrame(variance_data)
+        variance_path = os.path.join(output_dir, 'pca_variance_explained.csv')
+        variance_df.to_csv(variance_path, index=False)
+        results['tables']['pca_variance'] = variance_path
+        print(f"   Saved: {variance_path}")
+        
+        # Print summary for documentation
+        pc1_var = pca_info['explained_variance_ratio'][0] * 100
+        pc2_var = pca_info['explained_variance_ratio'][1] * 100 if len(pca_info['explained_variance_ratio']) > 1 else 0
+        cumulative = pc1_var + pc2_var
+        print(f"\n   PCA VARIANCE SUMMARY (for figure captions):")
+        print(f"   PC1: {pc1_var:.1f}%, PC2: {pc2_var:.1f}%")
+        print(f"   Cumulative (PC1+PC2): {cumulative:.1f}%")
+        if cumulative < 50:
+            print(f"   ⚠️  WARNING: Cumulative variance < 50% - acknowledge as limitation")
         
         # -----------------------------------------------------------------
         # 3.4 PCA biplot

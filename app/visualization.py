@@ -252,9 +252,21 @@ def create_pca_plot(X_pca: np.ndarray,
         ax.scatter(X_pca[:, 0], X_pca[:, 1], alpha=0.7, s=50, c='steelblue', 
                   edgecolors='white', linewidth=0.5)
     
-    ax.set_xlabel(f'PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)', fontsize=11)
-    ax.set_ylabel(f'PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)', fontsize=11)
-    ax.set_title('PCA of Resistance Profiles', fontsize=12, fontweight='bold')
+    # Calculate variance explained
+    pc1_var = pca.explained_variance_ratio_[0] * 100
+    pc2_var = pca.explained_variance_ratio_[1] * 100 if len(pca.explained_variance_ratio_) > 1 else 0
+    cumulative_var = pc1_var + pc2_var
+    
+    ax.set_xlabel(f'PC1 ({pc1_var:.1f}%)', fontsize=11)
+    ax.set_ylabel(f'PC2 ({pc2_var:.1f}%)', fontsize=11)
+    
+    # Build title with cumulative variance
+    title_line1 = 'PCA of Resistance Profiles'
+    title_line2 = f'PC1+PC2: {cumulative_var:.1f}% cumulative variance'
+    if cumulative_var < 50:
+        title_line2 += ' (interpret with caution: <50%)'
+    ax.set_title(f'{title_line1}\n{title_line2}', fontsize=11, fontweight='bold')
+    
     ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
     ax.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
     
