@@ -87,7 +87,7 @@ def parse_isolate_code(code: str) -> Dict[str, str]:
     # Remove prefix like EC_, VC_, SAL_, SAL, etc. if present
     # Known species prefixes (with or without underscore)
     known_prefixes = ['EC', 'VC', 'SAL', 'SG', 'KP', 'PA', 'AB']  # E. coli, V. cholerae, Salmonella, etc.
-    code_clean = code.strip()
+    code_clean = code.strip().upper()  # Normalize to uppercase for consistent processing
     
     # First try to remove prefix with underscore (e.g., EC_, VC_, SAL_)
     prefix_with_underscore = re.match(r'^([A-Z]+)_', code_clean)
@@ -96,7 +96,7 @@ def parse_isolate_code(code: str) -> Dict[str, str]:
     else:
         # Try to remove known prefixes without underscore (e.g., SALOL... -> OL...)
         for prefix in sorted(known_prefixes, key=len, reverse=True):  # Try longer prefixes first
-            if code_clean.upper().startswith(prefix):
+            if code_clean.startswith(prefix):
                 code_clean = code_clean[len(prefix):]
                 break
     
