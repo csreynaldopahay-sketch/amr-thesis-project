@@ -471,7 +471,10 @@ def count_resistant_classes_species_specific(row: pd.Series,
     antibiotic_cols : list
         List of antibiotic column names
     species_col : str
-        Column name containing species identification (default: 'ISOLATE_ID')
+        Column name containing species name. Default is 'ISOLATE_ID' which in
+        this dataset contains standardized species names (e.g., 'Escherichia coli',
+        'Klebsiella pneumoniae'). Note: In the AMR thesis dataset, ISOLATE_ID 
+        stores species names, not unique isolate identifiers.
     resistance_threshold : int
         Encoded value considered resistant (default: 2 for R)
     
@@ -481,6 +484,7 @@ def count_resistant_classes_species_specific(row: pd.Series,
         Number of distinct antibiotic classes with at least one resistant agent
     """
     # Get species-specific class mapping
+    # Note: species_col defaults to 'ISOLATE_ID' which contains species names in this dataset
     species_name = row.get(species_col, None)
     class_mapping = get_species_mdr_classes(species_name)
     
@@ -532,7 +536,8 @@ def determine_mdr_status_species_specific(row: pd.Series,
     antibiotic_cols : list
         List of antibiotic column names (typically ending in '_encoded')
     species_col : str
-        Column name containing species identification (default: 'ISOLATE_ID')
+        Column name containing species name. Default is 'ISOLATE_ID' which in
+        this dataset contains standardized species names (e.g., 'Escherichia coli').
     min_classes : int
         Minimum number of resistant classes for MDR classification (default: 3)
     resistance_threshold : int

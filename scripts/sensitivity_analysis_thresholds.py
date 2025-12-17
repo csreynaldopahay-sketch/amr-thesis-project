@@ -61,9 +61,12 @@ def load_raw_data():
             if csv_files:
                 df_raw = unify_data_sources(csv_files, str(raw_path.parent))
                 return df_raw
+            else:
+                print("   No CSV files found in project root.")
+                return pd.DataFrame()  # Return empty DataFrame instead of None
         except Exception as e:
             print(f"Could not generate raw dataset: {e}")
-            return None
+            return pd.DataFrame()  # Return empty DataFrame instead of None
     
     return pd.read_csv(raw_path)
 
@@ -207,7 +210,7 @@ def run_sensitivity_analysis(output_dir=None):
     print("\n1. Loading raw data...")
     df_raw = load_raw_data()
     
-    if df_raw is None:
+    if df_raw is None or len(df_raw) == 0:
         print("   ERROR: Could not load raw data.")
         print("   Please run main.py first to generate the unified raw dataset.")
         return None
