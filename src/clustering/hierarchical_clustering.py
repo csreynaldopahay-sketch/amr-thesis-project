@@ -686,20 +686,35 @@ def get_cluster_profiles(df_clustered: pd.DataFrame,
     return cluster_profiles
 
 
+def _abbreviate_species(full_name: str) -> str:
+    """
+    Abbreviate species names for compact display.
+    E.g., 'Escherichia coli' -> 'E. coli'
+    """
+    if not full_name or pd.isna(full_name):
+        return str(full_name)
+    parts = str(full_name).split()
+    if len(parts) >= 2:
+        return f"{parts[0][0]}. {' '.join(parts[1:])}"
+    return str(full_name)
+
+
 def get_cluster_summary(df_clustered: pd.DataFrame,
                        feature_cols: List[str] = None,
                        metadata_cols: List[str] = None) -> Dict:
     """
     Get comprehensive summary statistics for each cluster.
     
-    Creates the MANDATORY CLUSTER SUMMARY TABLE with:
+    Creates the ENHANCED CLUSTER SUMMARY TABLE with:
     - Cluster ID (C1, C2, ...)
     - N isolates
-    - Dominant species (%)
+    - Species composition (top 3 instead of just dominant)
     - MDR %
     - Top resistant antibiotics
     - Major region
-    - Major environment
+    - Major barangay (LOCAL_SITE)
+    - Major environment (ENVIRONMENT category)
+    - Major source (SAMPLING_SOURCE detailed)
     
     Parameters:
     -----------
@@ -731,16 +746,26 @@ def get_cluster_summary(df_clustered: pd.DataFrame,
             'percentage': (n_isolates / total_isolates) * 100
         }
         
-        # Species composition - find dominant species
+        # Species composition - top 3 species (enhanced from just dominant)
         if 'ISOLATE_ID' in cluster_df.columns:
             species_counts = cluster_df['ISOLATE_ID'].value_counts()
             if len(species_counts) > 0:
+                # Keep dominant species info for backward compatibility
                 dominant_species = species_counts.index[0]
                 dominant_count = species_counts.iloc[0]
                 dominant_pct = (dominant_count / n_isolates) * 100
                 cluster_summary['dominant_species'] = dominant_species
                 cluster_summary['dominant_species_pct'] = dominant_pct
                 cluster_summary['species_distribution'] = species_counts.to_dict()
+                
+                # NEW: Top 3 species composition for enhanced display
+                top_species = species_counts.head(3)
+                species_composition_parts = []
+                for sp, count in top_species.items():
+                    pct = (count / n_isolates) * 100
+                    abbrev = _abbreviate_species(sp)
+                    species_composition_parts.append(f"{abbrev} ({pct:.0f}%)")
+                cluster_summary['species_composition'] = ", ".join(species_composition_parts)
         
         # MDR proportion
         if 'MDR_FLAG' in cluster_df.columns:
@@ -774,15 +799,35 @@ def get_cluster_summary(df_clustered: pd.DataFrame,
                 cluster_summary['major_region_pct'] = region_pct
                 cluster_summary['regional_distribution'] = region_counts.to_dict()
         
-        # Environmental distribution (sample source) - find major environment
-        if 'SAMPLE_SOURCE' in cluster_df.columns:
-            env_counts = cluster_df['SAMPLE_SOURCE'].value_counts()
+        # NEW: Barangay/Local site distribution - find major barangay
+        if 'LOCAL_SITE' in cluster_df.columns:
+            site_counts = cluster_df['LOCAL_SITE'].value_counts()
+            if len(site_counts) > 0:
+                major_site = site_counts.index[0]
+                site_pct = (site_counts.iloc[0] / n_isolates) * 100
+                cluster_summary['major_barangay'] = major_site
+                cluster_summary['major_barangay_pct'] = site_pct
+                cluster_summary['barangay_distribution'] = site_counts.to_dict()
+        
+        # FIXED: Environment category (was using wrong column name SAMPLE_SOURCE)
+        if 'ENVIRONMENT' in cluster_df.columns:
+            env_counts = cluster_df['ENVIRONMENT'].value_counts()
             if len(env_counts) > 0:
                 major_env = env_counts.index[0]
                 env_pct = (env_counts.iloc[0] / n_isolates) * 100
                 cluster_summary['major_environment'] = major_env
                 cluster_summary['major_environment_pct'] = env_pct
                 cluster_summary['environmental_distribution'] = env_counts.to_dict()
+        
+        # NEW: Sampling source (detailed source tracking)
+        if 'SAMPLING_SOURCE' in cluster_df.columns:
+            source_counts = cluster_df['SAMPLING_SOURCE'].value_counts()
+            if len(source_counts) > 0:
+                major_source = source_counts.index[0]
+                source_pct = (source_counts.iloc[0] / n_isolates) * 100
+                cluster_summary['major_source'] = major_source
+                cluster_summary['major_source_pct'] = source_pct
+                cluster_summary['source_distribution'] = source_counts.to_dict()
         
         # Mean MAR index
         if 'MAR_INDEX_COMPUTED' in cluster_df.columns:
@@ -796,10 +841,16 @@ def get_cluster_summary(df_clustered: pd.DataFrame,
 def create_cluster_summary_table(df_clustered: pd.DataFrame,
                                 feature_cols: List[str] = None) -> pd.DataFrame:
     """
-    Create the MANDATORY CLUSTER SUMMARY TABLE as a DataFrame.
+    Create the ENHANCED CLUSTER SUMMARY TABLE as a DataFrame.
     
-    Table format:
-    Cluster | N isolates | Dominant species (%) | MDR % | Top resistant antibiotics | Major region | Major environment
+    Table format (9 columns):
+    Cluster | N Isolates | Species Composition | MDR % | Top Resistant Antibiotics | Major Region | Major Barangay | Major Environment | Major Source
+    
+    This enhanced version includes:
+    - Species Composition: Top 3 species instead of just dominant
+    - Major Barangay: LOCAL_SITE for micro-geographic resolution  
+    - Major Environment: ENVIRONMENT category (Water, Fish, Hospital)
+    - Major Source: SAMPLING_SOURCE for detailed source tracking
     
     Parameters:
     -----------
@@ -811,7 +862,7 @@ def create_cluster_summary_table(df_clustered: pd.DataFrame,
     Returns:
     --------
     pd.DataFrame
-        Summary table ready for display or export
+        Enhanced summary table ready for display or export
     """
     summary = get_cluster_summary(df_clustered, feature_cols)
     
@@ -820,11 +871,18 @@ def create_cluster_summary_table(df_clustered: pd.DataFrame,
         row = {
             'Cluster': info.get('cluster_label', f'C{cluster_id}'),
             'N Isolates': info.get('n_isolates', 0),
-            'Dominant Species (%)': f"{info.get('dominant_species', 'N/A')} ({info.get('dominant_species_pct', 0):.1f}%)" if 'dominant_species' in info else 'N/A',
+            # Enhanced: Top 3 species composition instead of just dominant
+            'Species Composition': info.get('species_composition', 
+                f"{info.get('dominant_species', 'N/A')} ({info.get('dominant_species_pct', 0):.0f}%)" if 'dominant_species' in info else 'N/A'),
             'MDR %': f"{info.get('mdr_proportion', 0):.1f}%" if 'mdr_proportion' in info else 'N/A',
             'Top Resistant Antibiotics': ', '.join(info.get('top_resistant_antibiotics', [])[:3]) if 'top_resistant_antibiotics' in info else 'N/A',
             'Major Region': f"{info.get('major_region', 'N/A')} ({info.get('major_region_pct', 0):.1f}%)" if 'major_region' in info else 'N/A',
-            'Major Environment': f"{info.get('major_environment', 'N/A')} ({info.get('major_environment_pct', 0):.1f}%)" if 'major_environment' in info else 'N/A'
+            # NEW: Major barangay for micro-geographic resolution
+            'Major Barangay': f"{info.get('major_barangay', 'N/A')} ({info.get('major_barangay_pct', 0):.1f}%)" if 'major_barangay' in info else 'N/A',
+            # FIXED: Major environment from ENVIRONMENT column
+            'Major Environment': f"{info.get('major_environment', 'N/A')} ({info.get('major_environment_pct', 0):.1f}%)" if 'major_environment' in info else 'N/A',
+            # NEW: Major source for detailed source tracking
+            'Major Source': f"{info.get('major_source', 'N/A')} ({info.get('major_source_pct', 0):.1f}%)" if 'major_source' in info else 'N/A'
         }
         table_data.append(row)
     
@@ -832,7 +890,7 @@ def create_cluster_summary_table(df_clustered: pd.DataFrame,
 
 
 def create_environmental_distribution_table(df_clustered: pd.DataFrame,
-                                           environment_col: str = 'SAMPLE_SOURCE',
+                                           environment_col: str = 'ENVIRONMENT',
                                            normalize: bool = True) -> pd.DataFrame:
     """
     Create ENVIRONMENTAL DISTRIBUTION TABLE (Cluster × Environment contingency table).
@@ -844,7 +902,7 @@ def create_environmental_distribution_table(df_clustered: pd.DataFrame,
     df_clustered : pd.DataFrame
         Dataframe with cluster labels
     environment_col : str
-        Column name for environmental/sample source (default: 'SAMPLE_SOURCE')
+        Column name for environmental category (default: 'ENVIRONMENT')
     normalize : bool
         If True, report proportions; if False, report counts (default: True)
     
@@ -853,9 +911,19 @@ def create_environmental_distribution_table(df_clustered: pd.DataFrame,
     pd.DataFrame
         Contingency table with cluster × environment distribution
     """
+    original_col = environment_col
+    # Try to find the environment column
     if environment_col not in df_clustered.columns:
-        print(f"Warning: {environment_col} column not found in dataframe")
-        return pd.DataFrame()
+        # Fall back to alternative column names
+        alt_cols = ['SAMPLING_SOURCE', 'SAMPLE_SOURCE', 'ENV', 'SOURCE']
+        for alt in alt_cols:
+            if alt in df_clustered.columns:
+                environment_col = alt
+                print(f"Note: '{original_col}' not found, using '{alt}' column instead")
+                break
+        else:
+            print(f"Warning: {environment_col} column not found in dataframe")
+            return pd.DataFrame()
     
     if 'CLUSTER' not in df_clustered.columns:
         print("Warning: CLUSTER column not found in dataframe")
