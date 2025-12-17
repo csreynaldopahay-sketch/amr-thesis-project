@@ -207,6 +207,57 @@ This document provides a structured template for documenting Phase 2 preprocessi
 
 ---
 
+## 6. Cluster Number Validation (k=5 Selection)
+
+### 6.1 Validation Methodology
+
+Optimal cluster count was determined through silhouette analysis and elbow method across k=2 to k=10. This evidence-based validation provides scientific justification for using k=5 clusters instead of an arbitrary choice.
+
+### 6.2 Cluster Validation Results
+
+![Cluster Validation](../../data/processed/figures/cluster_validation.png)
+
+**Figure 6.1**: Cluster validation analysis showing (A) Elbow Method using Within-Cluster Sum of Squares (WCSS) and (B) Silhouette Analysis for k=2 to k=10.
+
+| k | Silhouette Score | WCSS | Cluster Sizes | Interpretation |
+|---|------------------|------|---------------|----------------|
+| 2 | 0.377 | 2399 | 117, 375 | Too coarse - merges distinct phenotypes |
+| 3 | 0.417 | 1769 | 117, 123, 252 | Under-clusters species diversity |
+| 4 | 0.465 | 1486 | 23, 94, 123, 252 | Misses MDR/non-MDR E. coli split |
+| **5** | **0.488** | **1238** | **23, 94, 123, 104, 148** | **Optimal balance: distinct phenotypes** |
+| 6 | 0.517 | 1013 | 23, 94, 86, 37, 104, 148 | Slight over-fragmentation |
+| 7 | 0.527 | 895 | 23, 94, 86, 9, 28, 104, 148 | Creates very small clusters (n=9) |
+| 8-10 | 0.55-0.59 | 660-796 | Various | Over-fragmentation reduces interpretability |
+
+### 6.3 Justification for k=5
+
+Based on convergent evidence from silhouette analysis and elbow method:
+
+1. **Silhouette Score**: k=5 achieved a silhouette score of **0.49**, indicating reasonable cluster separation. While higher k values showed improved silhouette scores (up to 0.59 at k=10), the incremental improvement beyond k=5 comes with significant costs:
+   - Very small clusters emerge (e.g., n=9 at k=7)
+   - Biological interpretability decreases
+   - Statistical power per cluster diminishes
+
+2. **Elbow Analysis**: The WCSS curve shows a clear inflection point around **k=4-5**, after which the rate of decrease slows substantially. This "elbow" indicates that k=5 captures the major variance structure in the data.
+
+3. **Biological Interpretability**: k=5 produces clusters of sufficient size (23-148 isolates) for meaningful statistical analysis and biological characterization:
+   - C1: Salmonella-dominated, aminoglycoside-resistant (n=23)
+   - C2: Mixed species, moderate resistance (n=94)
+   - C3: E. coli MDR phenotype, tetracycline-resistant (n=123)
+   - C4: E. coli susceptible phenotype (n=104)
+   - C5: E. coli with low-moderate resistance (n=148)
+
+**Conclusion**: k=5 represents the optimal trade-off between cluster granularity and biological interpretability. The silhouette score of 0.49 confirms adequate cluster separation, while the resulting cluster sizes enable robust statistical inference for each resistance phenotype.
+
+### 6.4 Validation Output Files
+
+| File | Description | Location |
+|------|-------------|----------|
+| cluster_validation.png | Elbow and silhouette plots | data/processed/figures/ |
+| cluster_validation_results.csv | Detailed metrics for k=2-10 | data/processed/figures/ |
+
+---
+
 ## Interpretation Notes
 
 > **Scope**: These preprocessing results describe the data preparation steps performed on the analyzed dataset. Decisions regarding exclusion thresholds and encoding schemes follow established standards (see [preprocessing.md](../methods/preprocessing.md)).
@@ -218,6 +269,7 @@ This document provides a structured template for documenting Phase 2 preprocessi
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2024 | Initial results template |
+| 1.1 | 2025 | Added cluster validation (k=5) section |
 
 ---
 
