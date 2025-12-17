@@ -141,7 +141,7 @@ This document provides structured documentation for Phase 3 (clustering) and Pha
 | **ENR** | **1.000** | 0.6% | 393 | 99 | Strong (limited by class imbalance) |
 | **SXT** | **0.945** | 11.6% | 393 | 99 | Strong predictive capacity |
 | **AM** | **0.800** | 57.8% | 393 | 99 | Strong predictive capacity |
-| IPM | N/A | 0.4% | 393 | 99 | Insufficient resistant samples |
+| IPM | N/A | 0.4% | 393 | 99 | AUC undefined: Only 2 resistant isolates in dataset; insufficient for stratified train-test split |
 
 ### 3.3 Top Predictive Antibiotics by Target
 

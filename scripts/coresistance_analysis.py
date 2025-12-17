@@ -5,7 +5,7 @@ Task 2: Replace circular MDR discrimination with scientifically rigorous co-resi
 This module implements two components:
 1. Network Construction: Build graph of statistically significant antibiotic co-resistance pairs 
    using chi-square/Fisher's exact test with Bonferroni correction
-2. Predictive Modeling: Predict resistance to key antibiotics (TE, NAL, IPM) from other 
+2. Predictive Modeling: Predict resistance to key antibiotics (TE, ENR, IPM, SXT, AM) from other 
    antibiotics using Random Forest
 
 SCIENTIFIC RATIONALE:
@@ -367,18 +367,36 @@ def predict_antibiotic_resistance(df, feature_cols, target_antibiotic, random_st
     
     # Check class balance
     resistance_rate = y.mean()
+    n_resistant = y.sum()
+    n_susceptible = len(y) - n_resistant
+    
+    # Skip if insufficient samples for either class
+    if n_resistant < 3 or n_susceptible < 3:
+        print(f"   SKIPPING: Insufficient samples for {target_antibiotic} "
+              f"(resistant: {n_resistant}, susceptible: {n_susceptible})")
+        return None
+    
     if resistance_rate < 0.05 or resistance_rate > 0.95:
         print(f"   WARNING: Extreme class imbalance for {target_antibiotic} "
-              f"(resistance rate: {resistance_rate:.1%})")
+              f"(resistance rate: {resistance_rate:.1%}) - results may be unreliable")
     
     # Impute missing values
     imputer = SimpleImputer(strategy='median')
     X_imputed = imputer.fit_transform(X)
     
     # Train-test split (leakage-safe: split before any further processing)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_imputed, y, test_size=0.2, random_state=random_state, stratify=y
-    )
+    # Use stratify only if both classes have sufficient samples
+    try:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_imputed, y, test_size=0.2, random_state=random_state, stratify=y
+        )
+    except ValueError as e:
+        # Fall back to non-stratified split if stratification fails
+        print(f"   WARNING: Stratified split failed for {target_antibiotic}, "
+              f"using non-stratified split: {e}")
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_imputed, y, test_size=0.2, random_state=random_state
+        )
     
     # Scale features (fit on train only)
     scaler = StandardScaler()
@@ -401,8 +419,11 @@ def predict_antibiotic_resistance(df, feature_cols, target_antibiotic, random_st
     
     try:
         auc = roc_auc_score(y_test, y_prob)
-    except ValueError:
-        auc = 0.5  # If only one class in test set
+    except ValueError as e:
+        # Only one class present in test set - AUC undefined
+        print(f"   WARNING: AUC calculation failed for {target_antibiotic}: "
+              f"Only one class present in test set (classes: {np.unique(y_test)})")
+        auc = np.nan
     
     # Feature importance
     predictor_names = [col.replace('_encoded', '') for col in predictor_cols]
