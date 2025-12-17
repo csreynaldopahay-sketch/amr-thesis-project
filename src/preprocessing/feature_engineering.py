@@ -108,6 +108,180 @@ RESISTANCE_ENCODING = {
 }
 
 
+# ============================================================================
+# SPECIES-SPECIFIC ANTIBIOTIC CLASS DEFINITIONS FOR MDR CLASSIFICATION
+# Reference: Magiorakos AP, et al. (2012). Clin Microbiol Infect, 18(3), 268-281.
+# "MDR was defined for each organism separately based on resistance to at 
+#  least one agent in three or more antimicrobial categories."
+# ============================================================================
+SPECIES_SPECIFIC_MDR_CLASSES = {
+    # Escherichia coli MDR classes (Enterobacteriaceae)
+    'Escherichia coli': {
+        'AM': 'Penicillins',
+        'AMP': 'Penicillins',
+        'AMC': 'BL/BLI combinations',
+        'PRA': 'BL/BLI combinations',
+        'CN': 'Cephalosporins-1st/2nd',
+        'CF': 'Cephalosporins-1st/2nd',
+        'CPD': 'Cephalosporins-3rd/4th',
+        'CTX': 'Cephalosporins-3rd/4th',
+        'CFT': 'Cephalosporins-3rd/4th',
+        'CPT': 'Cephalosporins-3rd/4th',
+        'CFO': 'Cephamycins',
+        'IPM': 'Carbapenems',
+        'MRB': 'Carbapenems',
+        'AN': 'Aminoglycosides',
+        'GM': 'Aminoglycosides',
+        'N': 'Aminoglycosides',
+        'NAL': 'Quinolones',
+        'ENR': 'Fluoroquinolones',
+        'DO': 'Tetracyclines',
+        'TE': 'Tetracyclines',
+        'FT': 'Nitrofurans',
+        'C': 'Phenicols',
+        'SXT': 'Folate pathway inhibitors',
+        # Note: CZA excluded for E. coli as not routinely tested
+    },
+    
+    # Klebsiella pneumoniae MDR classes (similar to E. coli)
+    'Klebsiella pneumoniae': {
+        'AM': 'Penicillins',
+        'AMP': 'Penicillins',
+        'AMC': 'BL/BLI combinations',
+        'PRA': 'BL/BLI combinations',
+        'CN': 'Cephalosporins-1st/2nd',
+        'CF': 'Cephalosporins-1st/2nd',
+        'CPD': 'Cephalosporins-3rd/4th',
+        'CTX': 'Cephalosporins-3rd/4th',
+        'CFT': 'Cephalosporins-3rd/4th',
+        'CPT': 'Cephalosporins-3rd/4th',
+        'CZA': 'Cephalosporin/BLI',  # Important for Klebsiella
+        'CFO': 'Cephamycins',
+        'IPM': 'Carbapenems',
+        'MRB': 'Carbapenems',
+        'AN': 'Aminoglycosides',
+        'GM': 'Aminoglycosides',
+        'N': 'Aminoglycosides',
+        'NAL': 'Quinolones',
+        'ENR': 'Fluoroquinolones',
+        'DO': 'Tetracyclines',
+        'TE': 'Tetracyclines',
+        'FT': 'Nitrofurans',
+        'C': 'Phenicols',
+        'SXT': 'Folate pathway inhibitors',
+    },
+    
+    # Salmonella spp. MDR classes
+    'Salmonella': {
+        'AM': 'Penicillins',
+        'AMP': 'Penicillins',
+        'AMC': 'BL/BLI combinations',
+        'CPD': 'Cephalosporins-3rd/4th',
+        'CTX': 'Cephalosporins-3rd/4th',
+        'CFT': 'Cephalosporins-3rd/4th',
+        'CPT': 'Cephalosporins-3rd/4th',
+        'IPM': 'Carbapenems',
+        'MRB': 'Carbapenems',
+        'AN': 'Aminoglycosides',
+        'GM': 'Aminoglycosides',
+        'NAL': 'Quinolones',
+        'ENR': 'Fluoroquinolones',
+        'DO': 'Tetracyclines',
+        'TE': 'Tetracyclines',
+        'C': 'Phenicols',
+        'SXT': 'Folate pathway inhibitors',
+        # Note: Salmonella has intrinsic resistance to some agents
+    },
+    
+    # Pseudomonas aeruginosa MDR classes (different from Enterobacteriaceae)
+    'Pseudomonas aeruginosa': {
+        'PRA': 'Anti-pseudomonal penicillins',
+        'CZA': 'Anti-pseudomonal cephalosporins',
+        'CFT': 'Anti-pseudomonal cephalosporins',
+        'IPM': 'Carbapenems',
+        'MRB': 'Carbapenems',
+        'AN': 'Aminoglycosides',
+        'GM': 'Aminoglycosides',
+        'ENR': 'Fluoroquinolones',
+        'C': 'Phenicols',
+        # Note: Different class structure for Pseudomonas
+    },
+    
+    # Enterobacter spp. MDR classes
+    'Enterobacter': {
+        'AM': 'Penicillins',
+        'AMP': 'Penicillins',
+        'AMC': 'BL/BLI combinations',
+        'PRA': 'BL/BLI combinations',
+        'CPD': 'Cephalosporins-3rd/4th',
+        'CTX': 'Cephalosporins-3rd/4th',
+        'CFT': 'Cephalosporins-3rd/4th',
+        'CPT': 'Cephalosporins-3rd/4th',
+        'CZA': 'Cephalosporin/BLI',
+        'IPM': 'Carbapenems',
+        'MRB': 'Carbapenems',
+        'AN': 'Aminoglycosides',
+        'GM': 'Aminoglycosides',
+        'NAL': 'Quinolones',
+        'ENR': 'Fluoroquinolones',
+        'DO': 'Tetracyclines',
+        'TE': 'Tetracyclines',
+        'C': 'Phenicols',
+        'SXT': 'Folate pathway inhibitors',
+        # Note: Enterobacter has intrinsic AmpC, so resistant to 1st/2nd gen cephalosporins
+    },
+}
+
+
+def get_species_mdr_classes(species_name: str) -> Dict[str, str]:
+    """
+    Get species-specific antibiotic class mapping for MDR classification.
+    
+    Per Magiorakos et al. (2012), MDR should be defined for each organism 
+    separately with appropriate antibiotic class definitions.
+    
+    Parameters:
+    -----------
+    species_name : str
+        Species name (e.g., 'Escherichia coli', 'Klebsiella pneumoniae')
+    
+    Returns:
+    --------
+    dict
+        Antibiotic to class mapping for the species
+    """
+    # Normalize species name
+    if pd.isna(species_name):
+        return ANTIBIOTIC_CLASSES  # Fall back to default
+    
+    species_lower = str(species_name).lower().strip()
+    
+    # Check for exact matches first
+    for key in SPECIES_SPECIFIC_MDR_CLASSES:
+        if key.lower() == species_lower:
+            return SPECIES_SPECIFIC_MDR_CLASSES[key]
+    
+    # Check for partial matches (genus-level)
+    for key in SPECIES_SPECIFIC_MDR_CLASSES:
+        if key.lower().split()[0] in species_lower or species_lower in key.lower():
+            return SPECIES_SPECIFIC_MDR_CLASSES[key]
+    
+    # Special handling for common species names in data
+    if 'e. coli' in species_lower or 'e.coli' in species_lower:
+        return SPECIES_SPECIFIC_MDR_CLASSES['Escherichia coli']
+    if 'klebsiella' in species_lower:
+        return SPECIES_SPECIFIC_MDR_CLASSES['Klebsiella pneumoniae']
+    if 'salmonella' in species_lower:
+        return SPECIES_SPECIFIC_MDR_CLASSES['Salmonella']
+    if 'pseudomonas' in species_lower:
+        return SPECIES_SPECIFIC_MDR_CLASSES['Pseudomonas aeruginosa']
+    if 'enterobacter' in species_lower:
+        return SPECIES_SPECIFIC_MDR_CLASSES['Enterobacter']
+    
+    # Fall back to default universal mapping
+    return ANTIBIOTIC_CLASSES
+
+
 def compute_mar_index(row: pd.Series, 
                       antibiotic_cols: List[str],
                       resistance_threshold: int = 2) -> Optional[float]:
@@ -279,6 +453,102 @@ def determine_mdr_status(row: pd.Series,
     return resistant_classes_count >= min_classes
 
 
+def count_resistant_classes_species_specific(row: pd.Series,
+                                             antibiotic_cols: List[str],
+                                             species_col: str = 'ISOLATE_ID',
+                                             resistance_threshold: int = 2) -> int:
+    """
+    Count number of antibiotic classes with at least one resistant antibiotic,
+    using SPECIES-SPECIFIC class definitions per Magiorakos et al. (2012).
+    
+    This function correctly implements the Magiorakos MDR definition which
+    specifies that MDR should be defined "for each organism separately."
+    
+    Parameters:
+    -----------
+    row : pd.Series
+        Row containing resistance values (encoded) and species information
+    antibiotic_cols : list
+        List of antibiotic column names
+    species_col : str
+        Column name containing species identification (default: 'ISOLATE_ID')
+    resistance_threshold : int
+        Encoded value considered resistant (default: 2 for R)
+    
+    Returns:
+    --------
+    int
+        Number of distinct antibiotic classes with at least one resistant agent
+    """
+    # Get species-specific class mapping
+    species_name = row.get(species_col, None)
+    class_mapping = get_species_mdr_classes(species_name)
+    
+    resistant_classes = set()
+    
+    for col in antibiotic_cols:
+        if col in row.index:
+            value = row[col]
+            if pd.notna(value):
+                is_resistant = False
+                try:
+                    if int(value) >= resistance_threshold:
+                        is_resistant = True
+                except (ValueError, TypeError):
+                    if str(value).strip().upper() == 'R':
+                        is_resistant = True
+                
+                if is_resistant:
+                    # Get the base antibiotic name (remove _encoded suffix)
+                    ab_name = col.replace('_encoded', '').upper()
+                    ab_class = class_mapping.get(ab_name, None)
+                    # Only count if antibiotic is relevant for this species
+                    if ab_class is not None:
+                        resistant_classes.add(ab_class)
+    
+    return len(resistant_classes)
+
+
+def determine_mdr_status_species_specific(row: pd.Series,
+                                          antibiotic_cols: List[str],
+                                          species_col: str = 'ISOLATE_ID',
+                                          min_classes: int = 3,
+                                          resistance_threshold: int = 2) -> bool:
+    """
+    Determine if an isolate is Multi-Drug Resistant (MDR) using SPECIES-SPECIFIC
+    antibiotic class definitions per Magiorakos et al. (2012).
+    
+    This is the CORRECT implementation of MDR classification per the original
+    Magiorakos definition which states MDR should be defined "for each organism
+    separately based on resistance to at least one agent in three or more 
+    antimicrobial categories."
+    
+    Reference: Magiorakos AP, et al. (2012). Clin Microbiol Infect, 18(3), 268-281.
+    
+    Parameters:
+    -----------
+    row : pd.Series
+        Row containing encoded resistance values and species information
+    antibiotic_cols : list
+        List of antibiotic column names (typically ending in '_encoded')
+    species_col : str
+        Column name containing species identification (default: 'ISOLATE_ID')
+    min_classes : int
+        Minimum number of resistant classes for MDR classification (default: 3)
+    resistance_threshold : int
+        Encoded value considered resistant (default: 2 for R only)
+    
+    Returns:
+    --------
+    bool
+        True if isolate meets MDR criteria, False otherwise
+    """
+    resistant_classes_count = count_resistant_classes_species_specific(
+        row, antibiotic_cols, species_col, resistance_threshold
+    )
+    return resistant_classes_count >= min_classes
+
+
 def _safe_encode_binary_resistance(value, resistance_threshold: int = 2) -> Optional[int]:
     """
     Safely convert encoded resistance value to binary (R=1, non-R=0).
@@ -344,7 +614,8 @@ def create_binary_resistance_features(df: pd.DataFrame,
 
 
 def add_derived_features(df: pd.DataFrame,
-                        antibiotic_cols: List[str] = None) -> pd.DataFrame:
+                        antibiotic_cols: List[str] = None,
+                        use_species_specific_mdr: bool = True) -> pd.DataFrame:
     """
     Add all derived features to the dataframe.
     
@@ -352,8 +623,10 @@ def add_derived_features(df: pd.DataFrame,
     - MAR_INDEX_COMPUTED: Multiple Antibiotic Resistance Index (0-1)
     - RESISTANCE_COUNT: Total number of resistant antibiotics
     - RESISTANT_CLASSES_COUNT: Number of antimicrobial categories with resistance
-    - MDR_FLAG: Boolean Multi-Drug Resistant status
+    - MDR_FLAG: Boolean Multi-Drug Resistant status (universal)
     - MDR_CATEGORY: Categorical "MDR" or "Non-MDR"
+    - MDR_FLAG_SPECIES_SPECIFIC: Boolean MDR using species-specific definitions (if enabled)
+    - MDR_CATEGORY_SPECIES_SPECIFIC: Categorical species-specific MDR
     - {AB}_RESISTANT: Binary resistance indicators for each antibiotic
     
     Parameters:
@@ -362,6 +635,9 @@ def add_derived_features(df: pd.DataFrame,
         Input dataframe with encoded resistance values
     antibiotic_cols : list, optional
         List of antibiotic column names (encoded). If None, auto-detected.
+    use_species_specific_mdr : bool
+        If True, also compute species-specific MDR per Magiorakos (2012).
+        Requires 'ISOLATE_ID' column. Default: True.
     
     Returns:
     --------
@@ -383,6 +659,8 @@ def add_derived_features(df: pd.DataFrame,
     print("MDR (Multi-Drug Resistant) Classification:")
     print("  Definition: Resistance to ≥1 agent in ≥3 antimicrobial categories")
     print("  Reference: Magiorakos AP, et al. (2012). Clin Microbiol Infect.")
+    if use_species_specific_mdr:
+        print("  NOTE: Species-specific MDR classification will also be computed")
     print("-" * 50)
     
     df_features = df.copy()
@@ -407,32 +685,72 @@ def add_derived_features(df: pd.DataFrame,
         axis=1
     )
     
-    # Count resistant classes
-    print("4. Counting resistant antibiotic classes...")
+    # Count resistant classes (universal)
+    print("4. Counting resistant antibiotic classes (universal)...")
     df_features['RESISTANT_CLASSES_COUNT'] = df_features.apply(
         lambda row: count_resistant_classes(row, antibiotic_cols),
         axis=1
     )
     
-    # Determine MDR status (Magiorakos et al., 2012)
-    print("5. Determining MDR status (Magiorakos et al., 2012)...")
+    # Determine MDR status (universal - Magiorakos et al., 2012)
+    print("5. Determining MDR status (universal classification)...")
     df_features['MDR_FLAG'] = df_features.apply(
         lambda row: determine_mdr_status(row, antibiotic_cols),
         axis=1
     )
     df_features['MDR_CATEGORY'] = df_features['MDR_FLAG'].map({True: 'MDR', False: 'Non-MDR'})
     
+    # Species-specific MDR classification (Task 8 implementation)
+    if use_species_specific_mdr and 'ISOLATE_ID' in df_features.columns:
+        print("6. Computing SPECIES-SPECIFIC MDR (Magiorakos et al., 2012)...")
+        print("   Using species-appropriate antibiotic class definitions")
+        
+        # Count species-specific resistant classes
+        df_features['RESISTANT_CLASSES_COUNT_SPECIES'] = df_features.apply(
+            lambda row: count_resistant_classes_species_specific(
+                row, antibiotic_cols, species_col='ISOLATE_ID'
+            ),
+            axis=1
+        )
+        
+        # Determine species-specific MDR
+        df_features['MDR_FLAG_SPECIES_SPECIFIC'] = df_features.apply(
+            lambda row: determine_mdr_status_species_specific(
+                row, antibiotic_cols, species_col='ISOLATE_ID'
+            ),
+            axis=1
+        )
+        df_features['MDR_CATEGORY_SPECIES_SPECIFIC'] = df_features['MDR_FLAG_SPECIES_SPECIFIC'].map(
+            {True: 'MDR', False: 'Non-MDR'}
+        )
+        
+        # Compare universal vs species-specific MDR
+        mdr_universal = df_features['MDR_FLAG'].sum()
+        mdr_species = df_features['MDR_FLAG_SPECIES_SPECIFIC'].sum()
+        agreement = (df_features['MDR_FLAG'] == df_features['MDR_FLAG_SPECIES_SPECIFIC']).mean() * 100
+        
+        print(f"\n   MDR Classification Comparison:")
+        print(f"   Universal MDR:        {mdr_universal} isolates ({mdr_universal/len(df_features)*100:.1f}%)")
+        print(f"   Species-specific MDR: {mdr_species} isolates ({mdr_species/len(df_features)*100:.1f}%)")
+        print(f"   Agreement rate:       {agreement:.1f}%")
+        
+        step_num = 7
+    else:
+        if use_species_specific_mdr and 'ISOLATE_ID' not in df_features.columns:
+            print("6. SKIPPING species-specific MDR (ISOLATE_ID column not found)")
+        step_num = 6
+    
     # Add binary resistance indicators using the helper function
-    print("6. Creating binary resistance indicators (R=1, S/I=0)...")
+    print(f"{step_num}. Creating binary resistance indicators (R=1, S/I=0)...")
     df_features = create_binary_resistance_features(df_features, antibiotic_cols)
     
     # Summary statistics
     mdr_count = df_features['MDR_FLAG'].sum()
     mdr_pct = (mdr_count / len(df_features)) * 100
     
-    print(f"\n7. FEATURE ENGINEERING SUMMARY:")
+    print(f"\n{step_num + 1}. FEATURE ENGINEERING SUMMARY:")
     print(f"   Total isolates: {len(df_features)}")
-    print(f"   MDR isolates: {mdr_count} ({mdr_pct:.1f}%)")
+    print(f"   MDR isolates (universal): {mdr_count} ({mdr_pct:.1f}%)")
     print(f"   Non-MDR isolates: {len(df_features) - mdr_count} ({100-mdr_pct:.1f}%)")
     print(f"   Mean MAR index: {df_features['MAR_INDEX_COMPUTED'].mean():.4f}")
     print(f"   Mean resistance count: {df_features['RESISTANCE_COUNT'].mean():.2f}")
