@@ -843,7 +843,7 @@ def create_cluster_summary_table(df_clustered: pd.DataFrame,
     """
     Create the ENHANCED CLUSTER SUMMARY TABLE as a DataFrame.
     
-    Table format (8 columns):
+    Table format (9 columns):
     Cluster | N Isolates | Species Composition | MDR % | Top Resistant Antibiotics | Major Region | Major Barangay | Major Environment | Major Source
     
     This enhanced version includes:
@@ -911,6 +911,7 @@ def create_environmental_distribution_table(df_clustered: pd.DataFrame,
     pd.DataFrame
         Contingency table with cluster × environment distribution
     """
+    original_col = environment_col
     # Try to find the environment column
     if environment_col not in df_clustered.columns:
         # Fall back to alternative column names
@@ -918,6 +919,7 @@ def create_environmental_distribution_table(df_clustered: pd.DataFrame,
         for alt in alt_cols:
             if alt in df_clustered.columns:
                 environment_col = alt
+                print(f"Note: '{original_col}' not found, using '{alt}' column instead")
                 break
         else:
             print(f"Warning: {environment_col} column not found in dataframe")
