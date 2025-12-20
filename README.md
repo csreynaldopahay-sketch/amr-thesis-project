@@ -22,7 +22,9 @@ This project implements a comprehensive data science pipeline for AMR surveillan
 >
 > **⚠️ For explicit study limitations and scope boundaries, see [docs/limitations.md](docs/limitations.md)**
 >
-> **🤖 For AI-assisted thesis writing guide (two-phase system), see [docs/AI_THESIS_WRITING_GUIDE.md](docs/AI_THESIS_WRITING_GUIDE.md)**
+> **🤖 For AI-assisted thesis writing:**
+> - **Quick Start Guide:** [docs/AI_THESIS_QUICK_START.md](docs/AI_THESIS_QUICK_START.md)
+> - **Complete Guide:** [docs/AI_THESIS_WRITING_GUIDE.md](docs/AI_THESIS_WRITING_GUIDE.md)
 
 ### Phase 8 Documentation Structure
 
@@ -41,7 +43,8 @@ docs/
 │   ├── phase4_environment.md   # Regional/environmental results
 │   └── phase5_synthesis.md     # Integration/synthesis results
 ├── limitations.md              # Explicit limitations
-└── AI_THESIS_WRITING_GUIDE.md  # AI-assisted thesis writing guide
+├── AI_THESIS_QUICK_START.md    # AI-assisted thesis writing quick start
+└── AI_THESIS_WRITING_GUIDE.md  # AI-assisted thesis writing complete guide
 ```
 
 ## Isolate Code Convention

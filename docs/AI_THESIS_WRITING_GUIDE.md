@@ -1,5 +1,7 @@
 # AI-Assisted Thesis Writing Guide
 
+> **⚡ Quick Start:** For a condensed version of this guide, see [AI_THESIS_QUICK_START.md](AI_THESIS_QUICK_START.md)
+
 ## Overview
 
 This guide provides a **two-phase system** for using AI assistants to help write your thesis manuscript based on the AMR Thesis Project files. This approach ensures the AI deeply understands your project before generating academic content.
